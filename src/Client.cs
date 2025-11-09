@@ -1600,7 +1600,7 @@ namespace WTelegram
             int max503Count = 2;
             if (query is TL.Methods.Upload_GetFile)
             {
-                max503Count = 19;
+                max503Count = 100;
             }
             int count503 = 0;
         retry:
@@ -1646,12 +1646,28 @@ namespace WTelegram
                     else if (code == -503 && count503 < max503Count)
                     {
                         count503++;
-                        //got503 = true;
-                        if (count503 > 5)
+                        int delayTime = 0;
+                        switch (count503)
                         {
-                            await Task.Delay(2000);
+                            case int when count503 < 5:
+                                delayTime = 500;
+                                break;
+                            case int when count503 >= 5 && count503 < 50:
+                                delayTime = 2000;
+                                break;
+                            case int when count503 >= 50 && count503 < 75:
+                                delayTime = 5000;
+                                break;
+                            case int when count503 >= 75:
+                                delayTime = 8000;
+                                break;
+                            default:
+                                delayTime = 1000;
+                                break;
+
                         }
-                        await Task.Delay(500);
+
+                        await Task.Delay(delayTime);
                         goto retry;
                     }
                     else if (code == 401 && message == "SESSION_REVOKED" && !IsMainDC) // need to renegociate alt-DC auth
