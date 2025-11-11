@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -16,7 +17,7 @@ namespace TL
 #else
 	public interface IObject { }
 #endif
-	public interface IMethod<ReturnType> : IObject { }
+	public interface IMethod<out ReturnType> : IObject { }
 	public interface IPeerResolver { IPeerInfo UserOrChat(Peer peer); }
 
 	[AttributeUsage(AttributeTargets.Class)]
@@ -48,6 +49,15 @@ namespace TL
 
 	public static class Serialization
 	{
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static byte[] ToBytes<T>(this T obj) where T : IObject
+		{
+			using var ms = new MemoryStream(384);
+			using var writer = new BinaryWriter(ms);
+			writer.WriteTLObject(obj);
+			return ms.ToArray();
+		}
+
 		public static void WriteTLObject<T>(this BinaryWriter writer, T obj) where T : IObject
 		{
 			if (obj == null) { writer.WriteTLNull(typeof(T)); return; }
@@ -103,6 +113,17 @@ namespace TL
 			}
 			return (IObject)obj;
 #endif
+		}
+
+		public static IMethod<X> ReadTLMethod<X>(this BinaryReader reader)
+		{
+			uint ctorNb = reader.ReadUInt32();
+			if (!Layer.Methods.TryGetValue(ctorNb, out var ctor))
+				throw new WTelegram.WTException($"Cannot find method for ctor #{ctorNb:x}");
+			var method = ctor?.Invoke(reader);
+			if (method is IMethod<bool> && typeof(X) == typeof(object))
+				method = new BoolMethod { query = method };
+			return (IMethod<X>)method;
 		}
 
 		internal static void WriteTLValue(this BinaryWriter writer, object value, Type valueType)
@@ -197,10 +218,10 @@ namespace TL
 			foreach (var msg in messages)
 			{
 				writer.Write(msg.msg_id);
-				writer.Write(msg.seq_no);
+				writer.Write(msg.seqno);
 				var patchPos = writer.BaseStream.Position;
 				writer.Write(0);												// patched below
-				if ((msg.seq_no & 1) != 0)
+				if ((msg.seqno & 1) != 0)
 					WTelegram.Helpers.Log(1, $"             → {msg.body.GetType().Name.TrimEnd('_'),-38} #{(short)msg.msg_id.GetHashCode():X4}");
 				else
 					WTelegram.Helpers.Log(1, $"             → {msg.body.GetType().Name.TrimEnd('_'),-38}");
@@ -220,6 +241,21 @@ namespace TL
 			var elementType = array.GetType().GetElementType();
 			for (int i = 0; i < count; i++)
 				writer.WriteTLValue(array.GetValue(i), elementType);
+		}
+
+		internal static void WriteTLRawVector(this BinaryWriter writer, Array array, int elementSize)
+		{
+			var startPos = writer.BaseStream.Position;
+			int count = array.Length;
+			var elementType = array.GetType().GetElementType();
+			for (int i = count - 1; i >= 0; i--)
+			{
+				writer.BaseStream.Position = startPos + i * elementSize;
+				writer.WriteTLValue(array.GetValue(i), elementType);
+			}
+			writer.BaseStream.Position = startPos;
+			writer.Write(count);
+			writer.BaseStream.Position = startPos + count * elementSize + 4;
 		}
 
 		internal static List<T> ReadTLRawVector<T>(this BinaryReader reader, uint ctorNb)
@@ -428,10 +464,10 @@ namespace TL
 	}
 
 	[TLDef(0x5BB8E511)] //message#5bb8e511 msg_id:long seqno:int bytes:int body:Object = Message
-	public sealed partial class _Message(long msgId, int seqNo, IObject obj) : IObject
+	public sealed partial class _Message(long msgId, int seqno, IObject obj) : IObject
 	{
 		public long msg_id = msgId;
-		public int seq_no = seqNo;
+		public int seqno = seqno;
 		public int bytes;
 		public IObject body = obj;
 	}
@@ -443,4 +479,16 @@ namespace TL
 
 	[TLDef(0x3072CFA1)] //gzip_packed#3072cfa1 packed_data:bytes = Object
 	public sealed partial class GzipPacked : IObject { public byte[] packed_data; }
+
+	public sealed class Null<X> : IObject
+	{
+		public readonly static Null<X> Instance = new();
+		public void WriteTL(BinaryWriter writer) => writer.WriteTLNull(typeof(X));
+	}
+
+	public sealed class BoolMethod : IMethod<object>
+	{
+		public IObject query;
+		public void WriteTL(BinaryWriter writer) => query.WriteTL(writer);
+	}
 }

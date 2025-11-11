@@ -585,38 +585,38 @@ namespace WTelegram
             }));
         }
 
-        internal MsgContainer ReadMsgContainer(BinaryReader reader)
-        {
-            int count = reader.ReadInt32();
-            var messages = new List<_Message>(count);
-            for (int i = 0; i < count; i++)
-            {
-                var msg = new _Message(reader.ReadInt64(), reader.ReadInt32(), null) { bytes = reader.ReadInt32() };
-                messages.Add(msg);
-                if ((msg.seq_no & 1) != 0) lock (_msgsToAck) _msgsToAck.Add(msg.msg_id);
-                var pos = reader.BaseStream.Position;
-                try
-                {
-                    var ctorNb = reader.ReadUInt32();
-                    if (ctorNb == Layer.RpcResultCtor)
-                    {
-                        Helpers.Log(1, $"             → {"RpcResult",-38} {MsgIdToStamp(msg.msg_id):u}");
-                        msg.body = ReadRpcResult(reader);
-                    }
-                    else
-                    {
-                        var obj = msg.body = reader.ReadTLObject(ctorNb);
-                        Helpers.Log(1, $"             → {obj.GetType().Name,-38} {MsgIdToStamp(msg.msg_id):u} {((msg.seq_no & 1) != 0 ? "" : "(svc)")} {((msg.msg_id & 2) == 0 ? "" : "NAR")}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Helpers.Log(4, "While deserializing vector<%Message>: " + ex.ToString());
-                }
-                reader.BaseStream.Position = pos + msg.bytes;
-            }
-            return new MsgContainer { messages = messages };
-        }
+		internal MsgContainer ReadMsgContainer(BinaryReader reader)
+		{
+			int count = reader.ReadInt32();
+			var messages = new List<_Message>(count);
+			for (int i = 0; i < count; i++)
+			{
+				var msg = new _Message(reader.ReadInt64(), reader.ReadInt32(), null) { bytes = reader.ReadInt32() };
+				messages.Add(msg);
+				if ((msg.seqno & 1) != 0) lock (_msgsToAck) _msgsToAck.Add(msg.msg_id);
+				var pos = reader.BaseStream.Position;
+				try
+				{
+					var ctorNb = reader.ReadUInt32();
+					if (ctorNb == Layer.RpcResultCtor)
+					{
+						Helpers.Log(1, $"             → {"RpcResult",-38} {MsgIdToStamp(msg.msg_id):u}");
+						msg.body = ReadRpcResult(reader);
+					}
+					else
+					{
+						var obj = msg.body = reader.ReadTLObject(ctorNb);
+						Helpers.Log(1, $"             → {obj.GetType().Name,-38} {MsgIdToStamp(msg.msg_id):u} {((msg.seqno & 1) != 0 ? "" : "(svc)")} {((msg.msg_id & 2) == 0 ? "" : "NAR")}");
+					}
+				}
+				catch (Exception ex)
+				{
+					Helpers.Log(4, "While deserializing vector<%Message>: " + ex.ToString());
+				}
+				reader.BaseStream.Position = pos + msg.bytes;
+			}
+			return new MsgContainer { messages = messages };
+		}
 
         private RpcResult ReadRpcResult(BinaryReader reader)
         {
@@ -1125,41 +1125,41 @@ namespace WTelegram
             }
         }
 
-        /// <summary>Login as a bot (if not already logged-in).</summary>
-        /// <param name="bot_token">bot token, or <see langword="null"/> if token is provided by Config callback</param>
-        /// <remarks>Config callback may be queried for: <b>bot_token</b>
-        /// <br/>Bots can only call API methods marked with [bots: ✓] in their documentation. </remarks>
-        /// <returns>Detail about the logged-in bot</returns>
-        public async Task<User> LoginBotIfNeeded(string bot_token = null)
-        {
-            await ConnectAsync();
-            string botToken = bot_token ?? Config("bot_token");
-            if (_session.UserId != 0) // a user is already logged-in
-            {
-                try
-                {
-                    var users = await this.Users_GetUsers(InputUser.Self); // this calls also reenable incoming Updates
-                    var self = users[0] as User;
-                    if (self.id == long.Parse(botToken.Split(':')[0]))
-                    {
-                        _session.UserId = _dcSession.UserId = self.id;
-                        lock (_session) _session.Save();
-                        RaiseUpdates(self);
-                        return User = self;
-                    }
-                    Helpers.Log(3, $"Current logged user {self.id} mismatched bot_token. Logging out and in...");
-                }
-                catch (Exception ex)
-                {
-                    Helpers.Log(4, $"Error while verifying current bot! ({ex.Message}) Proceeding to login...");
-                }
-                await this.Auth_LogOut();
-                _session.UserId = _dcSession.UserId = 0;
-                User = null;
-            }
-            var authorization = await this.Auth_ImportBotAuthorization(0, _session.ApiId, _apiHash ??= Config("api_hash"), botToken);
-            return LoginAlreadyDone(authorization);
-        }
+		/// <summary>Login as a bot (if not already logged-in).</summary>
+		/// <param name="bot_token">bot token, or <see langword="null"/> if token is provided by Config callback</param>
+		/// <remarks>Config callback may be queried for: <b>bot_token</b>
+		/// <br/>Bots can only call API methods marked with [bots: ✓] in their documentation. </remarks>
+		/// <returns>Detail about the logged-in bot</returns>
+		public async Task<User> LoginBotIfNeeded(string bot_token = null)
+		{
+			await ConnectAsync();
+			string botToken = bot_token ?? Config("bot_token");
+			if (_session.UserId != 0) // a user is already logged-in
+			{
+				try
+				{
+					var users = await this.Users_GetUsers(InputUser.Self); // this call also reenable incoming Updates
+					var self = users[0] as User;
+					if (self.id == long.Parse(botToken.Split(':')[0]))
+					{
+						_session.UserId = _dcSession.UserId = self.id;
+						lock (_session) _session.Save();
+						RaiseUpdates(self);
+						return User = self;
+					}
+					Helpers.Log(3, $"Current logged user {self.id} mismatched bot_token. Logging out and in...");
+				}
+				catch (Exception ex)
+				{
+					Helpers.Log(4, $"Error while verifying current bot! ({ex.Message}) Proceeding to login...");
+				}
+				await this.Auth_LogOut();
+				_session.UserId = _dcSession.UserId = 0;
+				User = null;
+			}
+			var authorization = await this.Auth_ImportBotAuthorization(0, _session.ApiId, _apiHash ??= Config("api_hash"), botToken);
+			return LoginAlreadyDone(authorization);
+		}
 
         /// <summary>Login as a user (if not already logged-in).
         /// <br/><i>(this method calls <see cref="ConnectAsync">ConnectAsync</see> if necessary)</i></summary>
@@ -1484,42 +1484,42 @@ namespace WTelegram
                 using var writer = new BinaryWriter(memStream);
                 writer.Write(0);                // int32 payload_len (to be patched with payload length)
 
-                if (_dcSession.authKeyID == 0) // send unencrypted message
-                {
-                    if (_bareRpc == null) throw new WTException($"Shouldn't send a {msg.GetType().Name} unencrypted");
-                    writer.Write(0L);                       // int64 auth_key_id = 0 (Unencrypted)
-                    writer.Write(msgId);                    // int64 message_id
-                    writer.Write(0);                        // int32 message_data_length (to be patched)
-                    Helpers.Log(1, $"{_dcSession.DcID}>Sending   {msg.GetType().Name.TrimEnd('_')}...");
-                    writer.WriteTLObject(msg);              // bytes message_data
-                    BinaryPrimitives.WriteInt32LittleEndian(memStream.GetBuffer().AsSpan(20), (int)memStream.Length - 24);    // patch message_data_length
-                }
-                else
-                {
-                    CheckSalt();
-                    using var clearStream = new MemoryStream(1024);
-                    using var clearWriter = new BinaryWriter(clearStream);
-                    clearWriter.Write(_dcSession.AuthKey, 88, 32);
-                    clearWriter.Write(_dcSession.Salt);     // int64 salt
-                    clearWriter.Write(_dcSession.id);       // int64 session_id
-                    clearWriter.Write(msgId);               // int64 message_id
-                    clearWriter.Write(seqno);               // int32 msg_seqno
-                    clearWriter.Write(0);                   // int32 message_data_length (to be patched)
-                    if ((seqno & 1) != 0)
-                        Helpers.Log(1, $"{_dcSession.DcID}>Sending   {msg.GetType().Name.TrimEnd('_'),-40} #{(short)msgId.GetHashCode():X4}");
-                    else
-                        Helpers.Log(1, $"{_dcSession.DcID}>Sending   {msg.GetType().Name.TrimEnd('_'),-40} {MsgIdToStamp(msgId):u} (svc)");
-                    clearWriter.WriteTLObject(msg);         // bytes message_data
-                    int clearLength = (int)clearStream.Length - 32;  // length before padding (= 32 + message_data_length)
-                    int padding = (0x7FFFFFF0 - clearLength) % 16;
-                    padding += _random.Next(2, 16) * 16;        // MTProto 2.0 padding must be between 12..1024 with total length divisible by 16
-                    clearStream.SetLength(32 + clearLength + padding);
-                    byte[] clearBuffer = clearStream.GetBuffer();
-                    BinaryPrimitives.WriteInt32LittleEndian(clearBuffer.AsSpan(60), clearLength - 32);    // patch message_data_length
-                    RNG.GetBytes(clearBuffer, 32 + clearLength, padding);
-                    var msgKeyLarge = _sha256.ComputeHash(clearBuffer, 0, 32 + clearLength + padding);
-                    const int msgKeyOffset = 8; // msg_key = middle 128-bits of SHA256(authkey_part+plaintext+padding)
-                    byte[] encrypted_data = EncryptDecryptMessage(clearBuffer.AsSpan(32, clearLength + padding), true, 0, _dcSession.AuthKey, msgKeyLarge, msgKeyOffset, _sha256);
+				if (_dcSession.authKeyID == 0) // send unencrypted message
+				{
+					if (_bareRpc == null) throw new WTException($"Shouldn't send a {msg.GetType().Name} unencrypted");
+					writer.Write(0L);                       // int64 auth_key_id = 0 (Unencrypted)
+					writer.Write(msgId);                    // int64 message_id
+					writer.Write(0);                        // int32 message_data_length (to be patched)
+					Helpers.Log(1, $"{_dcSession.DcID}>Sending   {msg.GetType().Name.TrimEnd('_')}");
+					writer.WriteTLObject(msg);              // bytes message_data
+					BinaryPrimitives.WriteInt32LittleEndian(memStream.GetBuffer().AsSpan(20), (int)memStream.Length - 24);    // patch message_data_length
+				}
+				else
+				{
+					CheckSalt();
+					using var clearStream = new MemoryStream(1024);
+					using var clearWriter = new BinaryWriter(clearStream);
+					clearWriter.Write(_dcSession.AuthKey, 88, 32);
+					clearWriter.Write(_dcSession.Salt);     // int64 salt
+					clearWriter.Write(_dcSession.id);       // int64 session_id
+					clearWriter.Write(msgId);               // int64 message_id
+					clearWriter.Write(seqno);               // int32 msg_seqno
+					clearWriter.Write(0);                   // int32 message_data_length (to be patched)
+					if ((seqno & 1) != 0)
+						Helpers.Log(1, $"{_dcSession.DcID}>Sending   {msg.GetType().Name.TrimEnd('_'),-40} #{(short)msgId.GetHashCode():X4}");
+					else
+						Helpers.Log(1, $"{_dcSession.DcID}>Sending   {msg.GetType().Name.TrimEnd('_'),-40} {MsgIdToStamp(msgId):u} (svc)");
+					clearWriter.WriteTLObject(msg);         // bytes message_data
+					int clearLength = (int)clearStream.Length - 32;  // length before padding (= 32 + message_data_length)
+					int padding = (0x7FFFFFF0 - clearLength) % 16;
+					padding += _random.Next(2, 16) * 16;        // MTProto 2.0 padding must be between 12..1024 with total length divisible by 16
+					clearStream.SetLength(32 + clearLength + padding);
+					byte[] clearBuffer = clearStream.GetBuffer();
+					BinaryPrimitives.WriteInt32LittleEndian(clearBuffer.AsSpan(60), clearLength - 32);    // patch message_data_length
+					RNG.GetBytes(clearBuffer, 32 + clearLength, padding);
+					var msgKeyLarge = _sha256.ComputeHash(clearBuffer, 0, 32 + clearLength + padding);
+					const int msgKeyOffset = 8; // msg_key = middle 128-bits of SHA256(authkey_part+plaintext+padding)
+					byte[] encrypted_data = EncryptDecryptMessage(clearBuffer.AsSpan(32, clearLength + padding), true, 0, _dcSession.AuthKey, msgKeyLarge, msgKeyOffset, _sha256);
 
                     writer.Write(_dcSession.authKeyID);             // int64 auth_key_id
                     writer.Write(msgKeyLarge, msgKeyOffset, 16);    // int128 msg_key
@@ -1670,7 +1670,7 @@ namespace WTelegram
                         await Task.Delay(delayTime);
                         goto retry;
                     }
-                    else if (code == 401 && message == "SESSION_REVOKED" && !IsMainDC) // need to renegociate alt-DC auth
+                    else if (code == 401 && !IsMainDC && message is "SESSION_REVOKED" or "AUTH_KEY_UNREGISTERED") // need to renegociate alt-DC auth
                     {
                         lock (_session)
                         {
