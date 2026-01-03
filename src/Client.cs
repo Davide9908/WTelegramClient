@@ -877,15 +877,16 @@ namespace WTelegram
                     flags = dc.flags | DcOption.Flags.media_only
                 });
 
-        private async Task DoConnectAsync(bool quickResume)
-        {
-            _cts = new();
-            IPEndPoint endpoint = null;
-            byte[] preamble, secret = null;
-            int dcId = _dcSession?.DcID ?? 0;
-            if (dcId == 0) dcId = 2;
-            if (MTProxyUrl != null)
-            {
+		private async Task DoConnectAsync(bool quickResume)
+		{
+			_cts = new();
+			IPEndPoint endpoint = null;
+			bool needMigrate = false;
+			byte[] preamble, secret = null;
+			int dcId = _dcSession?.DcID ?? 0;
+			if (dcId == 0) dcId = 2;
+			if (MTProxyUrl != null)
+			{
 #if OBFUSCATION
                 if (TLConfig?.test_mode == true) dcId += dcId < 0 ? -10000 : 10000;
                 var parms = HttpUtility.ParseQueryString(MTProxyUrl[MTProxyUrl.IndexOf('?')..]);
@@ -909,70 +910,71 @@ namespace WTelegram
 #else
 				throw new Exception("Library was not compiled with OBFUSCATION symbol");
 #endif
-            }
-            else if (_httpClient != null)
-            {
-                Helpers.Log(2, $"Using HTTP Mode");
-                _reactorTask = Task.CompletedTask;
-            }
-            else
-            {
-                endpoint = _dcSession?.EndPoint ?? GetDefaultEndpoint(out int defaultDc);
-                Helpers.Log(2, $"Connecting to {endpoint}...");
-                TcpClient tcpClient = null;
-                try
-                {
-                    try
-                    {
-                        tcpClient = await TcpHandler(endpoint.Address.ToString(), endpoint.Port);
-                    }
-                    catch (SocketException ex) // cannot connect to target endpoint, try to find an alternate
-                    {
-                        Helpers.Log(4, $"SocketException {ex.SocketErrorCode} ({ex.ErrorCode}): {ex.Message}");
-                        if (_dcSession?.DataCenter == null) throw;
-                        var triedEndpoints = new HashSet<IPEndPoint> { endpoint };
-                        if (_session.DcOptions != null)
-                        {
-                            var altOptions = GetDcOptions(_dcSession.DataCenter.id, _dcSession.DataCenter.flags);
-                            // try alternate addresses for this DC
-                            foreach (var dcOption in altOptions)
-                            {
-                                endpoint = new(IPAddress.Parse(dcOption.ip_address), dcOption.port);
-                                if (!triedEndpoints.Add(endpoint)) continue;
-                                Helpers.Log(2, $"Connecting to {endpoint}...");
-                                try
-                                {
-                                    tcpClient = await TcpHandler(endpoint.Address.ToString(), endpoint.Port);
-                                    _dcSession.DataCenter = dcOption;
-                                    break;
-                                }
-                                catch (SocketException) { }
-                            }
-                        }
-                        if (tcpClient == null)
-                        {
-                            endpoint = GetDefaultEndpoint(out defaultDc); // re-ask callback for an address
-                            if (!triedEndpoints.Add(endpoint)) throw;
-                            _dcSession.Client = null;
-                            // is it address for a known DCSession?
-                            _dcSession = _session.DCSessions.Values.FirstOrDefault(dcs => dcs.EndPoint.Equals(endpoint));
-                            if (defaultDc != 0) _dcSession ??= _session.DCSessions.GetValueOrDefault(defaultDc);
-                            _dcSession ??= new();
-                            _dcSession.Client = this;
-                            _dcSession.DataCenter = null;
-                            Helpers.Log(2, $"Connecting to {endpoint}...");
-                            tcpClient = await TcpHandler(endpoint.Address.ToString(), endpoint.Port);
-                        }
-                    }
-                }
-                catch
-                {
-                    tcpClient?.Dispose();
-                    throw;
-                }
-                _tcpClient = tcpClient;
-                _networkStream = _tcpClient.GetStream();
-            }
+			}
+			else if (_httpClient != null)
+			{
+				Helpers.Log(2, $"Using HTTP Mode");
+				_reactorTask = Task.CompletedTask;
+			}
+			else
+			{
+				endpoint = _dcSession?.EndPoint ?? GetDefaultEndpoint(out int defaultDc);
+				Helpers.Log(2, $"Connecting to {endpoint}...");
+				TcpClient tcpClient = null;
+				try
+				{
+					try
+					{
+						tcpClient = await TcpHandler(endpoint.Address.ToString(), endpoint.Port);
+					}
+					catch (SocketException ex) // cannot connect to target endpoint, try to find an alternate
+					{
+						Helpers.Log(4, $"SocketException {ex.SocketErrorCode} ({ex.ErrorCode}): {ex.Message}");
+						if (_dcSession?.DataCenter == null) throw;
+						var triedEndpoints = new HashSet<IPEndPoint> { endpoint };
+						if (_session.DcOptions != null)
+						{
+							var altOptions = GetDcOptions(_dcSession.DataCenter.id, _dcSession.DataCenter.flags);
+							// try alternate addresses for this DC
+							foreach (var dcOption in altOptions)
+							{
+								endpoint = new(IPAddress.Parse(dcOption.ip_address), dcOption.port);
+								if (!triedEndpoints.Add(endpoint)) continue;
+								Helpers.Log(2, $"Connecting to {endpoint}...");
+								try
+								{
+									tcpClient = await TcpHandler(endpoint.Address.ToString(), endpoint.Port);
+									_dcSession.DataCenter = dcOption;
+									break;
+								}
+								catch (SocketException) { }
+							}
+						}
+						if (tcpClient == null)
+						{
+							endpoint = GetDefaultEndpoint(out defaultDc); // re-ask callback for an address
+							if (!triedEndpoints.Add(endpoint)) throw;
+							needMigrate = _dcSession.DataCenter.id == _session.MainDC && defaultDc != _session.MainDC;
+							_dcSession.Client = null;
+							// is it address for a known DCSession?
+							_dcSession = _session.DCSessions.Values.FirstOrDefault(dcs => dcs.EndPoint.Equals(endpoint));
+							if (defaultDc != 0) _dcSession ??= _session.DCSessions.GetValueOrDefault(defaultDc);
+							_dcSession ??= new();
+							_dcSession.Client = this;
+							_dcSession.DataCenter = null;
+							Helpers.Log(2, $"Connecting to {endpoint}...");
+							tcpClient = await TcpHandler(endpoint.Address.ToString(), endpoint.Port);
+						}
+					}
+				}
+				catch
+				{
+					tcpClient?.Dispose();
+					throw;
+				}
+				_tcpClient = tcpClient;
+				_networkStream = _tcpClient.GetStream();
+			}
 
             _dcSession.Salts?.Remove(DateTime.MaxValue);
             if (_networkStream != null)
@@ -994,32 +996,33 @@ namespace WTelegram
                 if (_dcSession.authKeyID == 0)
                     await CreateAuthorizationKey(this, _dcSession);
 
-                if (_networkStream != null) _ = KeepAlive(_cts.Token);
-                if (quickResume && _dcSession.Layer == Layer.Version && _dcSession.DataCenter != null && _session.MainDC != 0)
-                    TLConfig = new Config { this_dc = _session.MainDC, dc_options = _session.DcOptions };
-                else
-                {
-                    if (_dcSession.Layer != 0 && _dcSession.Layer != Layer.Version) _dcSession.Renew();
-                    await InitConnection();
-                    if (_dcSession.DataCenter == null)
-                    {
-                        _dcSession.DataCenter = _session.DcOptions.Where(dc => dc.id == TLConfig.this_dc)
-                            .OrderByDescending(dc => dc.ip_address == endpoint?.Address.ToString())
-                            .ThenByDescending(dc => dc.port == endpoint?.Port)
-                            .ThenByDescending(dc => dc.flags == (endpoint?.AddressFamily == AddressFamily.InterNetworkV6 ? DcOption.Flags.ipv6 : 0))
-                            .First();
-                        _session.DCSessions[TLConfig.this_dc] = _dcSession;
-                    }
-                    if (_session.MainDC == 0) _session.MainDC = TLConfig.this_dc;
-                }
-            }
-            finally
-            {
-                if (_reactorTask != null) // client not disposed
-                    lock (_session) _session.Save();
-            }
-            Helpers.Log(2, $"Connected to {(TLConfig.test_mode ? "Test DC" : "DC")} {TLConfig.this_dc}... {TLConfig.flags & (Config.Flags)~0x18E00U}");
-        }
+				if (_networkStream != null) _ = KeepAlive(_cts.Token);
+				if (quickResume && _dcSession.Layer == Layer.Version && _dcSession.DataCenter != null && _session.MainDC != 0)
+					TLConfig = new Config { this_dc = _session.MainDC, dc_options = _session.DcOptions };
+				else
+				{
+					if (_dcSession.Layer != 0 && _dcSession.Layer != Layer.Version) _dcSession.Renew();
+					await InitConnection();
+					if (_dcSession.DataCenter == null)
+					{
+						_dcSession.DataCenter = _session.DcOptions.Where(dc => dc.id == TLConfig.this_dc)
+							.OrderByDescending(dc => dc.ip_address == endpoint?.Address.ToString())
+							.ThenByDescending(dc => dc.port == endpoint?.Port)
+							.ThenByDescending(dc => dc.flags == (endpoint?.AddressFamily == AddressFamily.InterNetworkV6 ? DcOption.Flags.ipv6 : 0))
+							.First();
+						_session.DCSessions[TLConfig.this_dc] = _dcSession;
+					}
+					if (_session.MainDC == 0) _session.MainDC = TLConfig.this_dc;
+					else if (needMigrate) await MigrateToDC(_session.MainDC);
+				}
+			}
+			finally
+			{
+				if (_reactorTask != null) // client not disposed
+					lock (_session) _session.Save();
+			}
+			Helpers.Log(2, $"Connected to {(TLConfig.test_mode ? "Test DC" : "DC")} {TLConfig.this_dc}... {TLConfig.flags & (Config.Flags)~0x18E00U}");
+		}
 
         private async Task InitConnection()
         {
