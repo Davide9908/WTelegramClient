@@ -372,66 +372,68 @@ namespace WTelegram
 #if OBFUSCATION
                     _recvCtr.EncryptDecrypt(data.AsSpan(0, payloadLen));
 #endif
-                    obj = ReadFrame(data, payloadLen);
-                }
-                catch (Exception ex) // an exception in RecvAsync is always fatal
-                {
-                    if (ct.IsCancellationRequested) return;
-                    bool disconnectedAltDC = !IsMainDC && ex is WTException { Message: ConnectionShutDown } or IOException { InnerException: SocketException };
-                    if (disconnectedAltDC)
-                        Helpers.Log(3, $"{_dcSession.DcID}>Alt DC disconnected: {ex.Message}");
-                    else
-                        Helpers.Log(5, $"{_dcSession.DcID}>An exception occured in the reactor: {ex}");
-                    var oldSemaphore = _sendSemaphore;
-                    await oldSemaphore.WaitAsync(ct); // prevent any sending while we reconnect
-                    var reactorError = new ReactorError { Exception = ex };
-                    try
-                    {
-                        lock (_msgsToAck) _msgsToAck.Clear();
-                        await ResetAsync(false, false);
-                        _reactorReconnects = (_reactorReconnects + 1) % MaxAutoReconnects;
-                        if (disconnectedAltDC && _pendingRpcs.Count <= 1)
-                            if (_pendingRpcs.Values.FirstOrDefault() is not Rpc rpc || rpc.type == typeof(Pong))
-                                _reactorReconnects = 0;
-                        if (_reactorReconnects == 0)
-                            throw;
-                        await Task.Delay(5000);
-                        if (_networkStream == null) return; // Dispose has been called in-between
-                        await ConnectAsync(); // start a new reactor after 5 secs
-                        lock (_pendingRpcs) // retry all pending requests
-                        {
-                            foreach (var rpc in _pendingRpcs.Values)
-                                rpc.tcs.TrySetResult(reactorError); // this leads to a retry (see Invoke<T> method)
-                            _pendingRpcs.Clear();
-                            _bareRpc = null;
-                        }
-                        if (IsMainDC)
-                        {
-                            var updatesState = await this.Updates_GetState(); // this call reenables incoming Updates
-                            RaiseUpdates(updatesState);
-                        }
-                    }
-                    catch (Exception e) when (e is not ObjectDisposedException)
-                    {
-                        if (IsMainDC)
-                            RaiseUpdates(reactorError);
-                        lock (_pendingRpcs) // abort all pending requests
-                        {
-                            foreach (var rpc in _pendingRpcs.Values)
-                                rpc.tcs.TrySetException(ex);
-                            _pendingRpcs.Clear();
-                            _bareRpc = null;
-                        }
-                    }
-                    finally
-                    {
-                        oldSemaphore.Release();
-                    }
-                }
-                if (obj != null)
-                    await HandleMessageAsync(obj);
-            }
-        }
+					obj = ReadFrame(data, payloadLen);
+				}
+				catch (Exception ex) // an exception in RecvAsync is always fatal
+				{
+					if (ct.IsCancellationRequested) return;
+					bool disconnectedAltDC = !IsMainDC && ex is WTException { Message: ConnectionShutDown } or IOException { InnerException: SocketException };
+					if (disconnectedAltDC)
+						Helpers.Log(3, $"{_dcSession.DcID}>Alt DC disconnected: {ex.Message}");
+					else
+						Helpers.Log(5, $"{_dcSession.DcID}>An exception occured in the reactor: {ex}");
+					var oldSemaphore = _sendSemaphore;
+					await oldSemaphore.WaitAsync(ct); // prevent any sending while we reconnect
+					var reactorError = new ReactorError { Exception = ex };
+					try
+					{
+						lock (_msgsToAck) _msgsToAck.Clear();
+						await ResetAsync(false, false);
+						_reactorReconnects = (_reactorReconnects + 1) % MaxAutoReconnects;
+						if (disconnectedAltDC && _pendingRpcs.Count <= 1)
+							if (_pendingRpcs.Values.FirstOrDefault() is not Rpc rpc || rpc.type == typeof(Pong))
+								_reactorReconnects = 0;
+						if (_reactorReconnects == 0)
+							throw;
+#pragma warning disable CA2016
+						await Task.Delay(5000);
+#pragma warning restore CA2016
+						if (_networkStream == null) return; // Dispose has been called in-between
+						await ConnectAsync(); // start a new reactor after 5 secs
+						lock (_pendingRpcs) // retry all pending requests
+						{
+							foreach (var rpc in _pendingRpcs.Values)
+								rpc.tcs.TrySetResult(reactorError); // this leads to a retry (see Invoke<T> method)
+							_pendingRpcs.Clear();
+							_bareRpc = null;
+						}
+						if (IsMainDC)
+						{
+							var updatesState = await this.Updates_GetState(); // this call reenables incoming Updates
+							RaiseUpdates(updatesState);
+						}
+					}
+					catch (Exception e) when (e is not ObjectDisposedException)
+					{
+						if (IsMainDC)
+							RaiseUpdates(reactorError);
+						lock (_pendingRpcs) // abort all pending requests
+						{
+							foreach (var rpc in _pendingRpcs.Values)
+								rpc.tcs.TrySetException(ex);
+							_pendingRpcs.Clear();
+							_bareRpc = null;
+						}
+					}
+					finally
+					{
+						oldSemaphore.Release();
+					}
+				}
+				if (obj != null)
+					await HandleMessageAsync(obj);
+			}
+		}
 
         internal DateTime MsgIdToStamp(long serverMsgId)
             => new((serverMsgId >> 32) * 10000000 - _dcSession.serverTicksOffset + 621355968000000000L, DateTimeKind.Utc);
