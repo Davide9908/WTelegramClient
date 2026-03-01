@@ -158,7 +158,7 @@ namespace WTelegram
 #if DEBUG
             "server_address" => "2>149.154.167.40:443", // Test DC 2
 #else
-			"server_address" => "2>149.154.167.50:443",	// DC 2
+            "server_address" => "2>149.154.167.50:443",	// DC 2
 #endif
             "device_model" => Environment.Is64BitOperatingSystem ? "PC 64bit" : "PC 32bit",
             "system_version" => Helpers.GetSystemVersion(),
@@ -585,38 +585,38 @@ namespace WTelegram
             }));
         }
 
-		internal MsgContainer ReadMsgContainer(BinaryReader reader)
-		{
-			int count = reader.ReadInt32();
-			var messages = new List<_Message>(count);
-			for (int i = 0; i < count; i++)
-			{
-				var msg = new _Message(reader.ReadInt64(), reader.ReadInt32(), null) { bytes = reader.ReadInt32() };
-				messages.Add(msg);
-				if ((msg.seqno & 1) != 0) lock (_msgsToAck) _msgsToAck.Add(msg.msg_id);
-				var pos = reader.BaseStream.Position;
-				try
-				{
-					var ctorNb = reader.ReadUInt32();
-					if (ctorNb == Layer.RpcResultCtor)
-					{
-						Helpers.Log(1, $"             → {"RpcResult",-38} {MsgIdToStamp(msg.msg_id):u}");
-						msg.body = ReadRpcResult(reader);
-					}
-					else
-					{
-						var obj = msg.body = reader.ReadTLObject(ctorNb);
-						Helpers.Log(1, $"             → {obj.GetType().Name,-38} {MsgIdToStamp(msg.msg_id):u} {((msg.seqno & 1) != 0 ? "" : "(svc)")} {((msg.msg_id & 2) == 0 ? "" : "NAR")}");
-					}
-				}
-				catch (Exception ex)
-				{
-					Helpers.Log(4, "While deserializing vector<%Message>: " + ex.ToString());
-				}
-				reader.BaseStream.Position = pos + msg.bytes;
-			}
-			return new MsgContainer { messages = messages };
-		}
+        internal MsgContainer ReadMsgContainer(BinaryReader reader)
+        {
+            int count = reader.ReadInt32();
+            var messages = new List<_Message>(count);
+            for (int i = 0; i < count; i++)
+            {
+                var msg = new _Message(reader.ReadInt64(), reader.ReadInt32(), null) { bytes = reader.ReadInt32() };
+                messages.Add(msg);
+                if ((msg.seqno & 1) != 0) lock (_msgsToAck) _msgsToAck.Add(msg.msg_id);
+                var pos = reader.BaseStream.Position;
+                try
+                {
+                    var ctorNb = reader.ReadUInt32();
+                    if (ctorNb == Layer.RpcResultCtor)
+                    {
+                        Helpers.Log(1, $"             → {"RpcResult",-38} {MsgIdToStamp(msg.msg_id):u}");
+                        msg.body = ReadRpcResult(reader);
+                    }
+                    else
+                    {
+                        var obj = msg.body = reader.ReadTLObject(ctorNb);
+                        Helpers.Log(1, $"             → {obj.GetType().Name,-38} {MsgIdToStamp(msg.msg_id):u} {((msg.seqno & 1) != 0 ? "" : "(svc)")} {((msg.msg_id & 2) == 0 ? "" : "NAR")}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Helpers.Log(4, "While deserializing vector<%Message>: " + ex.ToString());
+                }
+                reader.BaseStream.Position = pos + msg.bytes;
+            }
+            return new MsgContainer { messages = messages };
+        }
 
         private RpcResult ReadRpcResult(BinaryReader reader)
         {
@@ -841,6 +841,9 @@ namespace WTelegram
         static async Task<TcpClient> DefaultTcpHandler(string host, int port)
         {
             var tcpClient = new TcpClient();
+            tcpClient.SendTimeout = 30000;
+            tcpClient.ReceiveTimeout = 30000;
+
             await tcpClient.ConnectAsync(host, port);
             return tcpClient;
         }
@@ -877,16 +880,16 @@ namespace WTelegram
                     flags = dc.flags | DcOption.Flags.media_only
                 });
 
-		private async Task DoConnectAsync(bool quickResume)
-		{
-			_cts = new();
-			IPEndPoint endpoint = null;
-			bool needMigrate = false;
-			byte[] preamble, secret = null;
-			int dcId = _dcSession?.DcID ?? 0;
-			if (dcId == 0) dcId = 2;
-			if (MTProxyUrl != null)
-			{
+        private async Task DoConnectAsync(bool quickResume)
+        {
+            _cts = new();
+            IPEndPoint endpoint = null;
+            bool needMigrate = false;
+            byte[] preamble, secret = null;
+            int dcId = _dcSession?.DcID ?? 0;
+            if (dcId == 0) dcId = 2;
+            if (MTProxyUrl != null)
+            {
 #if OBFUSCATION
                 if (TLConfig?.test_mode == true) dcId += dcId < 0 ? -10000 : 10000;
                 var parms = HttpUtility.ParseQueryString(MTProxyUrl[MTProxyUrl.IndexOf('?')..]);
@@ -910,71 +913,71 @@ namespace WTelegram
 #else
 				throw new Exception("Library was not compiled with OBFUSCATION symbol");
 #endif
-			}
-			else if (_httpClient != null)
-			{
-				Helpers.Log(2, $"Using HTTP Mode");
-				_reactorTask = Task.CompletedTask;
-			}
-			else
-			{
-				endpoint = _dcSession?.EndPoint ?? GetDefaultEndpoint(out int defaultDc);
-				Helpers.Log(2, $"Connecting to {endpoint}...");
-				TcpClient tcpClient = null;
-				try
-				{
-					try
-					{
-						tcpClient = await TcpHandler(endpoint.Address.ToString(), endpoint.Port);
-					}
-					catch (SocketException ex) // cannot connect to target endpoint, try to find an alternate
-					{
-						Helpers.Log(4, $"SocketException {ex.SocketErrorCode} ({ex.ErrorCode}): {ex.Message}");
-						if (_dcSession?.DataCenter == null) throw;
-						var triedEndpoints = new HashSet<IPEndPoint> { endpoint };
-						if (_session.DcOptions != null)
-						{
-							var altOptions = GetDcOptions(_dcSession.DataCenter.id, _dcSession.DataCenter.flags);
-							// try alternate addresses for this DC
-							foreach (var dcOption in altOptions)
-							{
-								endpoint = new(IPAddress.Parse(dcOption.ip_address), dcOption.port);
-								if (!triedEndpoints.Add(endpoint)) continue;
-								Helpers.Log(2, $"Connecting to {endpoint}...");
-								try
-								{
-									tcpClient = await TcpHandler(endpoint.Address.ToString(), endpoint.Port);
-									_dcSession.DataCenter = dcOption;
-									break;
-								}
-								catch (SocketException) { }
-							}
-						}
-						if (tcpClient == null)
-						{
-							endpoint = GetDefaultEndpoint(out defaultDc); // re-ask callback for an address
-							if (!triedEndpoints.Add(endpoint)) throw;
-							needMigrate = _dcSession.DataCenter.id == _session.MainDC && defaultDc != _session.MainDC;
-							_dcSession.Client = null;
-							// is it address for a known DCSession?
-							_dcSession = _session.DCSessions.Values.FirstOrDefault(dcs => dcs.EndPoint.Equals(endpoint));
-							if (defaultDc != 0) _dcSession ??= _session.DCSessions.GetValueOrDefault(defaultDc);
-							_dcSession ??= new();
-							_dcSession.Client = this;
-							_dcSession.DataCenter = null;
-							Helpers.Log(2, $"Connecting to {endpoint}...");
-							tcpClient = await TcpHandler(endpoint.Address.ToString(), endpoint.Port);
-						}
-					}
-				}
-				catch
-				{
-					tcpClient?.Dispose();
-					throw;
-				}
-				_tcpClient = tcpClient;
-				_networkStream = _tcpClient.GetStream();
-			}
+            }
+            else if (_httpClient != null)
+            {
+                Helpers.Log(2, $"Using HTTP Mode");
+                _reactorTask = Task.CompletedTask;
+            }
+            else
+            {
+                endpoint = _dcSession?.EndPoint ?? GetDefaultEndpoint(out int defaultDc);
+                Helpers.Log(2, $"Connecting to {endpoint}...");
+                TcpClient tcpClient = null;
+                try
+                {
+                    try
+                    {
+                        tcpClient = await TcpHandler(endpoint.Address.ToString(), endpoint.Port);
+                    }
+                    catch (SocketException ex) // cannot connect to target endpoint, try to find an alternate
+                    {
+                        Helpers.Log(4, $"SocketException {ex.SocketErrorCode} ({ex.ErrorCode}): {ex.Message}");
+                        if (_dcSession?.DataCenter == null) throw;
+                        var triedEndpoints = new HashSet<IPEndPoint> { endpoint };
+                        if (_session.DcOptions != null)
+                        {
+                            var altOptions = GetDcOptions(_dcSession.DataCenter.id, _dcSession.DataCenter.flags);
+                            // try alternate addresses for this DC
+                            foreach (var dcOption in altOptions)
+                            {
+                                endpoint = new(IPAddress.Parse(dcOption.ip_address), dcOption.port);
+                                if (!triedEndpoints.Add(endpoint)) continue;
+                                Helpers.Log(2, $"Connecting to {endpoint}...");
+                                try
+                                {
+                                    tcpClient = await TcpHandler(endpoint.Address.ToString(), endpoint.Port);
+                                    _dcSession.DataCenter = dcOption;
+                                    break;
+                                }
+                                catch (SocketException) { }
+                            }
+                        }
+                        if (tcpClient == null)
+                        {
+                            endpoint = GetDefaultEndpoint(out defaultDc); // re-ask callback for an address
+                            if (!triedEndpoints.Add(endpoint)) throw;
+                            needMigrate = _dcSession.DataCenter.id == _session.MainDC && defaultDc != _session.MainDC;
+                            _dcSession.Client = null;
+                            // is it address for a known DCSession?
+                            _dcSession = _session.DCSessions.Values.FirstOrDefault(dcs => dcs.EndPoint.Equals(endpoint));
+                            if (defaultDc != 0) _dcSession ??= _session.DCSessions.GetValueOrDefault(defaultDc);
+                            _dcSession ??= new();
+                            _dcSession.Client = this;
+                            _dcSession.DataCenter = null;
+                            Helpers.Log(2, $"Connecting to {endpoint}...");
+                            tcpClient = await TcpHandler(endpoint.Address.ToString(), endpoint.Port);
+                        }
+                    }
+                }
+                catch
+                {
+                    tcpClient?.Dispose();
+                    throw;
+                }
+                _tcpClient = tcpClient;
+                _networkStream = _tcpClient.GetStream();
+            }
 
             _dcSession.Salts?.Remove(DateTime.MaxValue);
             if (_networkStream != null)
@@ -996,33 +999,33 @@ namespace WTelegram
                 if (_dcSession.authKeyID == 0)
                     await CreateAuthorizationKey(this, _dcSession);
 
-				if (_networkStream != null) _ = KeepAlive(_cts.Token);
-				if (quickResume && _dcSession.Layer == Layer.Version && _dcSession.DataCenter != null && _session.MainDC != 0)
-					TLConfig = new Config { this_dc = _session.MainDC, dc_options = _session.DcOptions };
-				else
-				{
-					if (_dcSession.Layer != 0 && _dcSession.Layer != Layer.Version) _dcSession.Renew();
-					await InitConnection();
-					if (_dcSession.DataCenter == null)
-					{
-						_dcSession.DataCenter = _session.DcOptions.Where(dc => dc.id == TLConfig.this_dc)
-							.OrderByDescending(dc => dc.ip_address == endpoint?.Address.ToString())
-							.ThenByDescending(dc => dc.port == endpoint?.Port)
-							.ThenByDescending(dc => dc.flags == (endpoint?.AddressFamily == AddressFamily.InterNetworkV6 ? DcOption.Flags.ipv6 : 0))
-							.First();
-						_session.DCSessions[TLConfig.this_dc] = _dcSession;
-					}
-					if (_session.MainDC == 0) _session.MainDC = TLConfig.this_dc;
-					else if (needMigrate) await MigrateToDC(_session.MainDC);
-				}
-			}
-			finally
-			{
-				if (_reactorTask != null) // client not disposed
-					lock (_session) _session.Save();
-			}
-			Helpers.Log(2, $"Connected to {(TLConfig.test_mode ? "Test DC" : "DC")} {TLConfig.this_dc}... {TLConfig.flags & (Config.Flags)~0x18E00U}");
-		}
+                if (_networkStream != null) _ = KeepAlive(_cts.Token);
+                if (quickResume && _dcSession.Layer == Layer.Version && _dcSession.DataCenter != null && _session.MainDC != 0)
+                    TLConfig = new Config { this_dc = _session.MainDC, dc_options = _session.DcOptions };
+                else
+                {
+                    if (_dcSession.Layer != 0 && _dcSession.Layer != Layer.Version) _dcSession.Renew();
+                    await InitConnection();
+                    if (_dcSession.DataCenter == null)
+                    {
+                        _dcSession.DataCenter = _session.DcOptions.Where(dc => dc.id == TLConfig.this_dc)
+                            .OrderByDescending(dc => dc.ip_address == endpoint?.Address.ToString())
+                            .ThenByDescending(dc => dc.port == endpoint?.Port)
+                            .ThenByDescending(dc => dc.flags == (endpoint?.AddressFamily == AddressFamily.InterNetworkV6 ? DcOption.Flags.ipv6 : 0))
+                            .First();
+                        _session.DCSessions[TLConfig.this_dc] = _dcSession;
+                    }
+                    if (_session.MainDC == 0) _session.MainDC = TLConfig.this_dc;
+                    else if (needMigrate) await MigrateToDC(_session.MainDC);
+                }
+            }
+            finally
+            {
+                if (_reactorTask != null) // client not disposed
+                    lock (_session) _session.Save();
+            }
+            Helpers.Log(2, $"Connected to {(TLConfig.test_mode ? "Test DC" : "DC")} {TLConfig.this_dc}... {TLConfig.flags & (Config.Flags)~0x18E00U}");
+        }
 
         private async Task InitConnection()
         {
@@ -1057,7 +1060,7 @@ namespace WTelegram
 #if DEBUG
                     await this.PingDelayDisconnect(ping_id++, PingInterval * 5);
 #else
-					await this.PingDelayDisconnect(ping_id++, PingInterval * 5 / 4);
+                    await this.PingDelayDisconnect(ping_id++, PingInterval * 5 / 4);
 #endif
             }
         }
@@ -1128,41 +1131,41 @@ namespace WTelegram
             }
         }
 
-		/// <summary>Login as a bot (if not already logged-in).</summary>
-		/// <param name="bot_token">bot token, or <see langword="null"/> if token is provided by Config callback</param>
-		/// <remarks>Config callback may be queried for: <b>bot_token</b>
-		/// <br/>Bots can only call API methods marked with [bots: ✓] in their documentation. </remarks>
-		/// <returns>Detail about the logged-in bot</returns>
-		public async Task<User> LoginBotIfNeeded(string bot_token = null)
-		{
-			await ConnectAsync();
-			string botToken = bot_token ?? Config("bot_token");
-			if (_session.UserId != 0) // a user is already logged-in
-			{
-				try
-				{
-					var users = await this.Users_GetUsers(InputUser.Self); // this call also reenable incoming Updates
-					var self = users[0] as User;
-					if (self.id == long.Parse(botToken.Split(':')[0]))
-					{
-						_session.UserId = _dcSession.UserId = self.id;
-						lock (_session) _session.Save();
-						RaiseUpdates(self);
-						return User = self;
-					}
-					Helpers.Log(3, $"Current logged user {self.id} mismatched bot_token. Logging out and in...");
-				}
-				catch (Exception ex)
-				{
-					Helpers.Log(4, $"Error while verifying current bot! ({ex.Message}) Proceeding to login...");
-				}
-				await this.Auth_LogOut();
-				_session.UserId = _dcSession.UserId = 0;
-				User = null;
-			}
-			var authorization = await this.Auth_ImportBotAuthorization(0, _session.ApiId, _apiHash ??= Config("api_hash"), botToken);
-			return LoginAlreadyDone(authorization);
-		}
+        /// <summary>Login as a bot (if not already logged-in).</summary>
+        /// <param name="bot_token">bot token, or <see langword="null"/> if token is provided by Config callback</param>
+        /// <remarks>Config callback may be queried for: <b>bot_token</b>
+        /// <br/>Bots can only call API methods marked with [bots: ✓] in their documentation. </remarks>
+        /// <returns>Detail about the logged-in bot</returns>
+        public async Task<User> LoginBotIfNeeded(string bot_token = null)
+        {
+            await ConnectAsync();
+            string botToken = bot_token ?? Config("bot_token");
+            if (_session.UserId != 0) // a user is already logged-in
+            {
+                try
+                {
+                    var users = await this.Users_GetUsers(InputUser.Self); // this call also reenable incoming Updates
+                    var self = users[0] as User;
+                    if (self.id == long.Parse(botToken.Split(':')[0]))
+                    {
+                        _session.UserId = _dcSession.UserId = self.id;
+                        lock (_session) _session.Save();
+                        RaiseUpdates(self);
+                        return User = self;
+                    }
+                    Helpers.Log(3, $"Current logged user {self.id} mismatched bot_token. Logging out and in...");
+                }
+                catch (Exception ex)
+                {
+                    Helpers.Log(4, $"Error while verifying current bot! ({ex.Message}) Proceeding to login...");
+                }
+                await this.Auth_LogOut();
+                _session.UserId = _dcSession.UserId = 0;
+                User = null;
+            }
+            var authorization = await this.Auth_ImportBotAuthorization(0, _session.ApiId, _apiHash ??= Config("api_hash"), botToken);
+            return LoginAlreadyDone(authorization);
+        }
 
         /// <summary>Login as a user (if not already logged-in).
         /// <br/><i>(this method calls <see cref="ConnectAsync">ConnectAsync</see> if necessary)</i></summary>
@@ -1487,42 +1490,42 @@ namespace WTelegram
                 using var writer = new BinaryWriter(memStream);
                 writer.Write(0);                // int32 payload_len (to be patched with payload length)
 
-				if (_dcSession.authKeyID == 0) // send unencrypted message
-				{
-					if (_bareRpc == null) throw new WTException($"Shouldn't send a {msg.GetType().Name} unencrypted");
-					writer.Write(0L);                       // int64 auth_key_id = 0 (Unencrypted)
-					writer.Write(msgId);                    // int64 message_id
-					writer.Write(0);                        // int32 message_data_length (to be patched)
-					Helpers.Log(1, $"{_dcSession.DcID}>Sending   {msg.GetType().Name.TrimEnd('_')}");
-					writer.WriteTLObject(msg);              // bytes message_data
-					BinaryPrimitives.WriteInt32LittleEndian(memStream.GetBuffer().AsSpan(20), (int)memStream.Length - 24);    // patch message_data_length
-				}
-				else
-				{
-					CheckSalt();
-					using var clearStream = new MemoryStream(1024);
-					using var clearWriter = new BinaryWriter(clearStream);
-					clearWriter.Write(_dcSession.AuthKey, 88, 32);
-					clearWriter.Write(_dcSession.Salt);     // int64 salt
-					clearWriter.Write(_dcSession.id);       // int64 session_id
-					clearWriter.Write(msgId);               // int64 message_id
-					clearWriter.Write(seqno);               // int32 msg_seqno
-					clearWriter.Write(0);                   // int32 message_data_length (to be patched)
-					if ((seqno & 1) != 0)
-						Helpers.Log(1, $"{_dcSession.DcID}>Sending   {msg.GetType().Name.TrimEnd('_'),-40} #{(short)msgId.GetHashCode():X4}");
-					else
-						Helpers.Log(1, $"{_dcSession.DcID}>Sending   {msg.GetType().Name.TrimEnd('_'),-40} {MsgIdToStamp(msgId):u} (svc)");
-					clearWriter.WriteTLObject(msg);         // bytes message_data
-					int clearLength = (int)clearStream.Length - 32;  // length before padding (= 32 + message_data_length)
-					int padding = (0x7FFFFFF0 - clearLength) % 16;
-					padding += _random.Next(2, 16) * 16;        // MTProto 2.0 padding must be between 12..1024 with total length divisible by 16
-					clearStream.SetLength(32 + clearLength + padding);
-					byte[] clearBuffer = clearStream.GetBuffer();
-					BinaryPrimitives.WriteInt32LittleEndian(clearBuffer.AsSpan(60), clearLength - 32);    // patch message_data_length
-					RNG.GetBytes(clearBuffer, 32 + clearLength, padding);
-					var msgKeyLarge = _sha256.ComputeHash(clearBuffer, 0, 32 + clearLength + padding);
-					const int msgKeyOffset = 8; // msg_key = middle 128-bits of SHA256(authkey_part+plaintext+padding)
-					byte[] encrypted_data = EncryptDecryptMessage(clearBuffer.AsSpan(32, clearLength + padding), true, 0, _dcSession.AuthKey, msgKeyLarge, msgKeyOffset, _sha256);
+                if (_dcSession.authKeyID == 0) // send unencrypted message
+                {
+                    if (_bareRpc == null) throw new WTException($"Shouldn't send a {msg.GetType().Name} unencrypted");
+                    writer.Write(0L);                       // int64 auth_key_id = 0 (Unencrypted)
+                    writer.Write(msgId);                    // int64 message_id
+                    writer.Write(0);                        // int32 message_data_length (to be patched)
+                    Helpers.Log(1, $"{_dcSession.DcID}>Sending   {msg.GetType().Name.TrimEnd('_')}");
+                    writer.WriteTLObject(msg);              // bytes message_data
+                    BinaryPrimitives.WriteInt32LittleEndian(memStream.GetBuffer().AsSpan(20), (int)memStream.Length - 24);    // patch message_data_length
+                }
+                else
+                {
+                    CheckSalt();
+                    using var clearStream = new MemoryStream(1024);
+                    using var clearWriter = new BinaryWriter(clearStream);
+                    clearWriter.Write(_dcSession.AuthKey, 88, 32);
+                    clearWriter.Write(_dcSession.Salt);     // int64 salt
+                    clearWriter.Write(_dcSession.id);       // int64 session_id
+                    clearWriter.Write(msgId);               // int64 message_id
+                    clearWriter.Write(seqno);               // int32 msg_seqno
+                    clearWriter.Write(0);                   // int32 message_data_length (to be patched)
+                    if ((seqno & 1) != 0)
+                        Helpers.Log(1, $"{_dcSession.DcID}>Sending   {msg.GetType().Name.TrimEnd('_'),-40} #{(short)msgId.GetHashCode():X4}");
+                    else
+                        Helpers.Log(1, $"{_dcSession.DcID}>Sending   {msg.GetType().Name.TrimEnd('_'),-40} {MsgIdToStamp(msgId):u} (svc)");
+                    clearWriter.WriteTLObject(msg);         // bytes message_data
+                    int clearLength = (int)clearStream.Length - 32;  // length before padding (= 32 + message_data_length)
+                    int padding = (0x7FFFFFF0 - clearLength) % 16;
+                    padding += _random.Next(2, 16) * 16;        // MTProto 2.0 padding must be between 12..1024 with total length divisible by 16
+                    clearStream.SetLength(32 + clearLength + padding);
+                    byte[] clearBuffer = clearStream.GetBuffer();
+                    BinaryPrimitives.WriteInt32LittleEndian(clearBuffer.AsSpan(60), clearLength - 32);    // patch message_data_length
+                    RNG.GetBytes(clearBuffer, 32 + clearLength, padding);
+                    var msgKeyLarge = _sha256.ComputeHash(clearBuffer, 0, 32 + clearLength + padding);
+                    const int msgKeyOffset = 8; // msg_key = middle 128-bits of SHA256(authkey_part+plaintext+padding)
+                    byte[] encrypted_data = EncryptDecryptMessage(clearBuffer.AsSpan(32, clearLength + padding), true, 0, _dcSession.AuthKey, msgKeyLarge, msgKeyOffset, _sha256);
 
                     writer.Write(_dcSession.authKeyID);             // int64 auth_key_id
                     writer.Write(msgKeyLarge, msgKeyOffset, 16);    // int128 msg_key
@@ -1541,9 +1544,15 @@ namespace WTelegram
                 _sendCtr?.EncryptDecrypt(buffer.AsSpan(0, frameLength));
 #endif
                 if (_networkStream != null)
+                {
+                    Helpers.Log(1, $"{_dcSession.DcID}>Sending   #{(short)msgId.GetHashCode():X4} via _networkStream");
                     await _networkStream.WriteAsync(buffer, 0, frameLength);
+                }
                 else
+                {
+                    Helpers.Log(1, $"{_dcSession.DcID}>Sending   #{(short)msgId.GetHashCode():X4} via SendReceiveHttp");
                     receiveTask = SendReceiveHttp(buffer, frameLength);
+                }
                 _lastSentMsg = msg;
             }
             finally
