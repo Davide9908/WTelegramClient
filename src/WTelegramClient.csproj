@@ -13,12 +13,12 @@
     <PackageId>WTelegramClient</PackageId>
     <Authors>Wizou,Davide</Authors>
     <VersionPrefix>0.0.0</VersionPrefix>
-    <VersionSuffix>layer.220.custom</VersionSuffix>
-    <Description>Telegram Client API (MTProto) library written 100% in C# and .NET Standard | Latest API layer: 220
+    <VersionSuffix>layer.221.custom</VersionSuffix>
+    <Description>Telegram Client API (MTProto) library written 100% in C# and .NET Standard | Latest API layer: 221
 
 Release Notes:
 $(ReleaseNotes)</Description>
-    <Copyright>Copyright © Olivier Marcoux 2021-2025</Copyright>
+    <Copyright>Copyright © Olivier Marcoux 2021-2026</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://wiz0u.github.io/WTelegramClient</PackageProjectUrl>
     <PackageIcon>logo.png</PackageIcon>
@@ -28,7 +28,7 @@ $(ReleaseNotes)</Description>
     <PackageTags>Telegram;MTProto;Client;Api;UserBot</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageReleaseNotes>$(ReleaseNotes)</PackageReleaseNotes>
-    <NoWarn>NETSDK1138;CS0419;CS1573;CS1591</NoWarn>
+    <NoWarn>NETSDK1138;CS0419;CS1573;CS1591;CA1850</NoWarn>
     <DefineConstants>TRACE;OBFUSCATION;MTPG</DefineConstants>
     <!--<IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net7.0'))">true</IsAotCompatible>-->
   </PropertyGroup>
