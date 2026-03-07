@@ -8654,15 +8654,32 @@ namespace TL
 	{
 	}
 	/// <summary>Button to request a user to authorize via URL using <a href="https://telegram.org/blog/privacy-discussions-web-bots#meet-seamless-web-bots">Seamless Telegram Login</a>. When the user clicks on such a button, <see cref="SchemaExtensions.Messages_RequestUrlAuth">Messages_RequestUrlAuth</see> should be called, providing the <c>button_id</c> and the ID of the container message. The returned <see cref="UrlAuthResultRequest"/> object will contain more details about the authorization request (<c>request_write_access</c> if the bot would like to send messages to the user along with the username of the bot which will be used for user authorization). Finally, the user can choose to call <see cref="SchemaExtensions.Messages_AcceptUrlAuth">Messages_AcceptUrlAuth</see> to get a <see cref="UrlAuthResultAccepted"/> with the URL to open instead of the <c>url</c> of this constructor, or a <see langword="null"/>, in which case the <c>url</c> of this constructor must be opened, instead. If the user refuses the authorization request but still wants to open the link, the <c>url</c> of this constructor must be used.		<para>See <a href="https://corefork.telegram.org/constructor/keyboardButtonUrlAuth"/></para></summary>
-	[TLDef(0xF51006F9, inheritAt = 0)]
-	public sealed partial class KeyboardButtonUrlAuth : KeyboardButton
+	[TLDef(0xF51006F9)]
+	public sealed partial class KeyboardButtonUrlAuth : KeyboardButtonBase
 	{
+		/// <summary>Extra bits of information, use <c>flags.HasFlag(...)</c> to test for those</summary>
+		public Flags flags;
+		[IfFlag(10)] public KeyboardButtonStyle style;
+		/// <summary>Button label</summary>
+		public string text;
 		/// <summary>New text of the button in forwarded messages.</summary>
-		public string fwd_text;
+		[IfFlag(0)] public string fwd_text;
 		/// <summary>An HTTP URL to be opened with user authorization data added to the query string when the button is pressed. If the user refuses to provide authorization data, the original URL without information about the user will be opened. The data added is the same as described in <a href="https://corefork.telegram.org/widgets/login#receiving-authorization-data">Receiving authorization data</a>.<br/><br/><strong>NOTE</strong>: Services must <strong>always</strong> check the hash of the received data to verify the authentication and the integrity of the data as described in <a href="https://corefork.telegram.org/widgets/login#checking-authorization">Checking authorization</a>.</summary>
 		public string url;
 		/// <summary>ID of the button to pass to <see cref="SchemaExtensions.Messages_RequestUrlAuth">Messages_RequestUrlAuth</see></summary>
 		public int button_id;
+
+		[Flags] public enum Flags : uint
+		{
+			/// <summary>Field <see cref="fwd_text"/> has a value</summary>
+			has_fwd_text = 0x1,
+			/// <summary>Field <see cref="style"/> has a value</summary>
+			has_style = 0x400,
+		}
+
+		public override KeyboardButtonStyle Style => style;
+		/// <summary>Button label</summary>
+		public override string Text => text;
 	}
 	/// <summary>Button to request a user to <see cref="SchemaExtensions.Messages_AcceptUrlAuth">Messages_AcceptUrlAuth</see> via URL using <a href="https://telegram.org/blog/privacy-discussions-web-bots#meet-seamless-web-bots">Seamless Telegram Login</a>.		<para>See <a href="https://corefork.telegram.org/constructor/inputKeyboardButtonUrlAuth"/></para></summary>
 	[TLDef(0x68013E72)]
