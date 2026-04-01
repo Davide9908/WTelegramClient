@@ -365,7 +365,7 @@ await Task.Delay(5000);
 ```csharp
 // • Sending a message with custom emojies in Markdown to ourself:
 var text = "Vicksy says Hi! ![👋](tg://emoji?id=5190875290439525089)";
-var entities = client.MarkdownToEntities(ref text, premium: true);
+var entities = client.MarkdownToEntities(ref text);
 await client.SendMessageAsync(InputPeer.Self, text, entities: entities);
 // also available in HTML: <tg-emoji emoji-id="5190875290439525089">👋</tg-emoji>
 
