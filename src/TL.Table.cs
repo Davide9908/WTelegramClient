@@ -6,7 +6,7 @@ namespace TL
 {
 	public static partial class Layer
 	{
-		public const int Version = 222;					// fetched 02/06/2026 19:18:24
+		public const int Version = 223;					// fetched 03/02/2026 11:38:17
 		internal const int SecretChats = 144;
 		internal const int MTProto2 = 73;
 		internal const uint VectorCtor = 0x1CB5C415;
@@ -145,15 +145,15 @@ namespace TL
 			[0x17D493D5] = typeof(ChannelForbidden),
 			[0x2633421B] = typeof(ChatFull),
 			[0xE4E0B29D] = typeof(ChannelFull),
-			[0xC02D4007] = typeof(ChatParticipant),
-			[0xE46BCEE4] = typeof(ChatParticipantCreator),
-			[0xA0933F5B] = typeof(ChatParticipantAdmin),
+			[0x38E79FDE] = typeof(ChatParticipant),
+			[0xE1F867B8] = typeof(ChatParticipantCreator),
+			[0x0360D5D2] = typeof(ChatParticipantAdmin),
 			[0x8763D3E1] = typeof(ChatParticipantsForbidden),
 			[0x3CBC93F8] = typeof(ChatParticipants),
 			[0x37C1011C] = null,//ChatPhotoEmpty
 			[0x1C6E1C11] = typeof(ChatPhoto),
 			[0x90A6CA84] = typeof(MessageEmpty),
-			[0x9CB490E9] = typeof(Message),
+			[0x3AE56482] = typeof(Message),
 			[0x7A800E0A] = typeof(MessageService),
 			[0x3DED6320] = null,//MessageMediaEmpty
 			[0x695150D7] = typeof(MessageMediaPhoto),
@@ -236,6 +236,8 @@ namespace TL
 			[0x73ADA76B] = typeof(MessageActionStarGiftPurchaseOfferDeclined),
 			[0xB07ED085] = typeof(MessageActionNewCreatorPending),
 			[0xE188503B] = typeof(MessageActionChangeCreator),
+			[0xBF7D6572] = typeof(MessageActionNoForwardsToggle),
+			[0x3E2793BA] = typeof(MessageActionNoForwardsRequest),
 			[0xD58A08C6] = typeof(Dialog),
 			[0x71BD134C] = typeof(DialogFolder),
 			[0x2331B22D] = typeof(PhotoEmpty),
@@ -453,6 +455,7 @@ namespace TL
 			[0xDC58F31E] = typeof(UpdateStarGiftAuctionUserState),
 			[0xFB9C547A] = typeof(UpdateEmojiGameInfo),
 			[0xAC072444] = typeof(UpdateStarGiftCraftFail),
+			[0xBD8367B9] = typeof(UpdateChatParticipantRank),
 			[0xA56C2A3E] = typeof(Updates_State),
 			[0x5D75A138] = typeof(Updates_DifferenceEmpty),
 			[0x00F49CA0] = typeof(Updates_Difference),
@@ -641,6 +644,7 @@ namespace TL
 			[0x32CA960F] = typeof(MessageEntitySpoiler),
 			[0xC8CF05F8] = typeof(MessageEntityCustomEmoji),
 			[0xF1CCAAAC] = typeof(MessageEntityBlockquote),
+			[0x904AC7C7] = typeof(MessageEntityFormattedDate),
 			[0xEE8C1E86] = null,//InputChannelEmpty
 			[0xF35AEC28] = typeof(InputChannel),
 			[0x5B934F9D] = typeof(InputChannelFromMessage),
@@ -651,11 +655,11 @@ namespace TL
 			[0x2064674E] = typeof(Updates_ChannelDifference),
 			[0x94D42EE7] = null,//ChannelMessagesFilterEmpty
 			[0xCD77D957] = typeof(ChannelMessagesFilter),
-			[0xCB397619] = typeof(ChannelParticipant),
-			[0x4F607BEF] = typeof(ChannelParticipantSelf),
+			[0x1BD54456] = typeof(ChannelParticipant),
+			[0xA9478A1A] = typeof(ChannelParticipantSelf),
 			[0x2FE601D3] = typeof(ChannelParticipantCreator),
 			[0x34C3BB53] = typeof(ChannelParticipantAdmin),
-			[0x6DF8014E] = typeof(ChannelParticipantBanned),
+			[0xD5F0AD91] = typeof(ChannelParticipantBanned),
 			[0x1B03F006] = typeof(ChannelParticipantLeft),
 			[0xDE3F3C79] = typeof(ChannelParticipantsRecent),
 			[0xB4608969] = typeof(ChannelParticipantsAdmins),
@@ -889,6 +893,7 @@ namespace TL
 			[0x60A79C79] = typeof(ChannelAdminLogEventActionToggleSignatureProfiles),
 			[0x64642DB3] = typeof(ChannelAdminLogEventActionParticipantSubExtend),
 			[0xC517F77E] = typeof(ChannelAdminLogEventActionToggleAutotranslation),
+			[0x5806B4EC] = typeof(ChannelAdminLogEventActionParticipantEditRank),
 			[0x1FAD68CD] = typeof(ChannelAdminLogEvent),
 			[0xED8AF74D] = typeof(Channels_AdminLogResults),
 			[0xEA107AE4] = typeof(ChannelAdminLogEventsFilter),
@@ -1002,7 +1007,7 @@ namespace TL
 			[0xFBD2C296] = typeof(InputFolderPeer),
 			[0xE9BAA668] = typeof(FolderPeer),
 			[0xE844EBFF] = typeof(Messages_SearchCounter),
-			[0x32FABF1A] = typeof(UrlAuthResultRequest),
+			[0xF8F8EB1E] = typeof(UrlAuthResultRequest),
 			[0x623A8FA0] = typeof(UrlAuthResultAccepted),
 			[0xA9D6DB1F] = null,//UrlAuthResultDefault
 			[0xBFB5AD8B] = null,//ChannelLocationEmpty
