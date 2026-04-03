@@ -3291,14 +3291,15 @@ namespace TL
 		/// <param name="button_id">The ID of the button with the authorization request</param>
 		/// <param name="url">URL used for <a href="https://corefork.telegram.org/api/url-authorization#link-url-authorization">link URL authorization, click here for more info »</a></param>
 		/// <returns>a <c>null</c> value means <a href="https://corefork.telegram.org/constructor/urlAuthResultDefault">urlAuthResultDefault</a></returns>
-		public static Task<UrlAuthResult> Messages_RequestUrlAuth(this Client client, InputPeer peer = null, int? msg_id = null, int? button_id = null, string url = null)
+		public static Task<UrlAuthResult> Messages_RequestUrlAuth(this Client client, InputPeer peer = null, int? msg_id = null, int? button_id = null, string url = null, string in_app_origin = null)
 			=> client.Invoke(new Messages_RequestUrlAuth
 			{
-				flags = (Messages_RequestUrlAuth.Flags)((peer != null ? 0x2 : 0) | (msg_id != null ? 0x2 : 0) | (button_id != null ? 0x2 : 0) | (url != null ? 0x4 : 0)),
+				flags = (Messages_RequestUrlAuth.Flags)((peer != null ? 0x2 : 0) | (msg_id != null ? 0x2 : 0) | (button_id != null ? 0x2 : 0) | (url != null ? 0x4 : 0) | (in_app_origin != null ? 0x8 : 0)),
 				peer = peer,
 				msg_id = msg_id ?? default,
 				button_id = button_id ?? default,
 				url = url,
+				in_app_origin = in_app_origin,
 			});
 
 		/// <summary>Use this to accept a Seamless Telegram Login authorization request, for more info <a href="https://corefork.telegram.org/api/url-authorization">click here »</a>		<para>See <a href="https://corefork.telegram.org/method/messages.acceptUrlAuth"/></para></summary>
@@ -3308,14 +3309,15 @@ namespace TL
 		/// <param name="button_id">ID of the login button</param>
 		/// <param name="url">URL used for <a href="https://corefork.telegram.org/api/url-authorization#link-url-authorization">link URL authorization, click here for more info »</a></param>
 		/// <returns>a <c>null</c> value means <a href="https://corefork.telegram.org/constructor/urlAuthResultDefault">urlAuthResultDefault</a></returns>
-		public static Task<UrlAuthResult> Messages_AcceptUrlAuth(this Client client, InputPeer peer = null, int? msg_id = null, int? button_id = null, string url = null, bool write_allowed = false, bool share_phone_number = false)
+		public static Task<UrlAuthResult> Messages_AcceptUrlAuth(this Client client, InputPeer peer = null, int? msg_id = null, int? button_id = null, string url = null, string match_code = null, bool write_allowed = false, bool share_phone_number = false)
 			=> client.Invoke(new Messages_AcceptUrlAuth
 			{
-				flags = (Messages_AcceptUrlAuth.Flags)((peer != null ? 0x2 : 0) | (msg_id != null ? 0x2 : 0) | (button_id != null ? 0x2 : 0) | (url != null ? 0x4 : 0) | (write_allowed ? 0x1 : 0) | (share_phone_number ? 0x8 : 0)),
+				flags = (Messages_AcceptUrlAuth.Flags)((peer != null ? 0x2 : 0) | (msg_id != null ? 0x2 : 0) | (button_id != null ? 0x2 : 0) | (url != null ? 0x4 : 0) | (match_code != null ? 0x10 : 0) | (write_allowed ? 0x1 : 0) | (share_phone_number ? 0x8 : 0)),
 				peer = peer,
 				msg_id = msg_id ?? default,
 				button_id = button_id ?? default,
 				url = url,
+				match_code = match_code,
 			});
 
 		/// <summary>Should be called after the user hides the <a href="https://corefork.telegram.org/api/action-bar">report spam/add as contact bar</a> of a new chat, effectively prevents the user from executing the actions specified in the <a href="https://corefork.telegram.org/api/action-bar">action bar »</a>.		<para>See <a href="https://corefork.telegram.org/method/messages.hidePeerSettingsBar"/></para>		<para>Possible <see cref="RpcException"/> codes: 400 (<a href="https://corefork.telegram.org/method/messages.hidePeerSettingsBar#possible-errors">details</a>)</para></summary>
@@ -3754,11 +3756,13 @@ namespace TL
 		/// <summary>Enable or disable <a href="https://telegram.org/blog/protected-content-delete-by-date-and-more">content protection</a> on a channel or chat		<para>See <a href="https://corefork.telegram.org/method/messages.toggleNoForwards"/></para>		<para>Possible <see cref="RpcException"/> codes: 400 (<a href="https://corefork.telegram.org/method/messages.toggleNoForwards#possible-errors">details</a>)</para></summary>
 		/// <param name="peer">The chat or channel</param>
 		/// <param name="enabled">Enable or disable content protection</param>
-		public static Task<UpdatesBase> Messages_ToggleNoForwards(this Client client, InputPeer peer, bool enabled)
+		public static Task<UpdatesBase> Messages_ToggleNoForwards(this Client client, InputPeer peer, bool enabled, int? request_msg_id = null)
 			=> client.Invoke(new Messages_ToggleNoForwards
 			{
+				flags = (Messages_ToggleNoForwards.Flags)(request_msg_id != null ? 0x1 : 0),
 				peer = peer,
 				enabled = enabled,
+				request_msg_id = request_msg_id ?? default,
 			});
 
 		/// <summary>Change the default peer that should be used when sending messages, reactions, poll votes to a specific group		<para>See <a href="https://corefork.telegram.org/method/messages.saveDefaultSendAs"/></para>		<para>Possible <see cref="RpcException"/> codes: 400 (<a href="https://corefork.telegram.org/method/messages.saveDefaultSendAs#possible-errors">details</a>)</para></summary>
@@ -4873,6 +4877,46 @@ namespace TL
 				to_lang = to_lang,
 			});
 
+		/// <summary><para>See <a href="https://corefork.telegram.org/method/messages.editChatCreator"/> [bots: ✓]</para></summary>
+		public static Task<UpdatesBase> Messages_EditChatCreator(this Client client, InputPeer peer, InputUserBase user_id, InputCheckPasswordSRP password)
+			=> client.Invoke(new Messages_EditChatCreator
+			{
+				peer = peer,
+				user_id = user_id,
+				password = password,
+			});
+
+		/// <summary><para>See <a href="https://corefork.telegram.org/method/messages.getFutureChatCreatorAfterLeave"/> [bots: ✓]</para></summary>
+		public static Task<UserBase> Messages_GetFutureChatCreatorAfterLeave(this Client client, InputPeer peer)
+			=> client.Invoke(new Messages_GetFutureChatCreatorAfterLeave
+			{
+				peer = peer,
+			});
+
+		/// <summary><para>See <a href="https://corefork.telegram.org/method/messages.editChatParticipantRank"/> [bots: ✓]</para></summary>
+		public static Task<UpdatesBase> Messages_EditChatParticipantRank(this Client client, InputPeer peer, InputPeer participant, string rank)
+			=> client.Invoke(new Messages_EditChatParticipantRank
+			{
+				peer = peer,
+				participant = participant,
+				rank = rank,
+			});
+
+		/// <summary><para>See <a href="https://corefork.telegram.org/method/messages.declineUrlAuth"/> [bots: ✓]</para></summary>
+		public static Task<bool> Messages_DeclineUrlAuth(this Client client, string url)
+			=> client.Invoke(new Messages_DeclineUrlAuth
+			{
+				url = url,
+			});
+
+		/// <summary><para>See <a href="https://corefork.telegram.org/method/messages.checkUrlAuthMatchCode"/> [bots: ✓]</para></summary>
+		public static Task<bool> Messages_CheckUrlAuthMatchCode(this Client client, string url, string match_code)
+			=> client.Invoke(new Messages_CheckUrlAuthMatchCode
+			{
+				url = url,
+				match_code = match_code,
+			});
+
 		/// <summary>Returns a current state of updates.		<para>See <a href="https://corefork.telegram.org/method/updates.getState"/> [bots: ✓]</para></summary>
 		public static Task<Updates_State> Updates_GetState(this Client client)
 			=> client.Invoke(new Updates_GetState
@@ -5393,9 +5437,10 @@ namespace TL
 		/// <param name="user_id">The ID of the user whose admin rights should be modified</param>
 		/// <param name="admin_rights">The admin rights</param>
 		/// <param name="rank">Indicates the role (rank) of the admin in the group: just an arbitrary string</param>
-		public static Task<UpdatesBase> Channels_EditAdmin(this Client client, InputChannelBase channel, InputUserBase user_id, ChatAdminRights admin_rights, string rank)
+		public static Task<UpdatesBase> Channels_EditAdmin(this Client client, InputChannelBase channel, InputUserBase user_id, ChatAdminRights admin_rights, string rank = null)
 			=> client.Invoke(new Channels_EditAdmin
 			{
+				flags = (Channels_EditAdmin.Flags)(rank != null ? 0x1 : 0),
 				channel = channel,
 				user_id = user_id,
 				admin_rights = admin_rights,
@@ -5607,18 +5652,6 @@ namespace TL
 			{
 				broadcast = broadcast,
 				group = group,
-			});
-
-		/// <summary>Transfer channel ownership		<para>See <a href="https://corefork.telegram.org/method/channels.editCreator"/></para>		<para>Possible <see cref="RpcException"/> codes: 400,403 (<a href="https://corefork.telegram.org/method/channels.editCreator#possible-errors">details</a>)</para></summary>
-		/// <param name="channel">Channel</param>
-		/// <param name="user_id">New channel owner</param>
-		/// <param name="password"><a href="https://corefork.telegram.org/api/srp">2FA password</a> of account</param>
-		public static Task<UpdatesBase> Channels_EditCreator(this Client client, InputChannelBase channel, InputUserBase user_id, InputCheckPasswordSRP password)
-			=> client.Invoke(new Channels_EditCreator
-			{
-				channel = channel,
-				user_id = user_id,
-				password = password,
 			});
 
 		/// <summary>Edit location of geogroup, see <a href="https://corefork.telegram.org/api/nearby">here »</a> for more info on geogroups.		<para>See <a href="https://corefork.telegram.org/method/channels.editLocation"/></para>		<para>Possible <see cref="RpcException"/> codes: 400 (<a href="https://corefork.telegram.org/method/channels.editLocation#possible-errors">details</a>)</para></summary>
@@ -5912,13 +5945,6 @@ namespace TL
 			{
 				channel = channel,
 				tab = tab,
-			});
-
-		/// <summary><para>See <a href="https://corefork.telegram.org/method/channels.getFutureCreatorAfterLeave"/></para>		<para>Possible <see cref="RpcException"/> codes: 400 (<a href="https://corefork.telegram.org/method/channels.getFutureCreatorAfterLeave#possible-errors">details</a>)</para></summary>
-		public static Task<UserBase> Channels_GetFutureCreatorAfterLeave(this Client client, InputChannelBase channel)
-			=> client.Invoke(new Channels_GetFutureCreatorAfterLeave
-			{
-				channel = channel,
 			});
 
 		/// <summary>Sends a custom request; for bots only		<para>See <a href="https://corefork.telegram.org/method/bots.sendCustomRequest"/> [bots: ✓ users: ✗]</para>		<para>Possible <see cref="RpcException"/> codes: 400 (<a href="https://corefork.telegram.org/method/bots.sendCustomRequest#possible-errors">details</a>)</para></summary>
@@ -11058,7 +11084,7 @@ namespace TL.Methods
 		}
 	}
 
-	[TLDef(0x198FB446)]
+	[TLDef(0x894CC99C)]
 	public sealed partial class Messages_RequestUrlAuth : IMethod<UrlAuthResult>
 	{
 		public Flags flags;
@@ -11066,15 +11092,17 @@ namespace TL.Methods
 		[IfFlag(1)] public int msg_id;
 		[IfFlag(1)] public int button_id;
 		[IfFlag(2)] public string url;
+		[IfFlag(3)] public string in_app_origin;
 
 		[Flags] public enum Flags : uint
 		{
 			has_peer = 0x2,
 			has_url = 0x4,
+			has_in_app_origin = 0x8,
 		}
 	}
 
-	[TLDef(0xB12C7125)]
+	[TLDef(0x67A3F0DE)]
 	public sealed partial class Messages_AcceptUrlAuth : IMethod<UrlAuthResult>
 	{
 		public Flags flags;
@@ -11082,6 +11110,7 @@ namespace TL.Methods
 		[IfFlag(1)] public int msg_id;
 		[IfFlag(1)] public int button_id;
 		[IfFlag(2)] public string url;
+		[IfFlag(4)] public string match_code;
 
 		[Flags] public enum Flags : uint
 		{
@@ -11089,6 +11118,7 @@ namespace TL.Methods
 			has_peer = 0x2,
 			has_url = 0x4,
 			share_phone_number = 0x8,
+			has_match_code = 0x10,
 		}
 	}
 
@@ -11452,11 +11482,18 @@ namespace TL.Methods
 		}
 	}
 
-	[TLDef(0xB11EAFA2)]
+	[TLDef(0xB2081A35)]
 	public sealed partial class Messages_ToggleNoForwards : IMethod<UpdatesBase>
 	{
+		public Flags flags;
 		public InputPeer peer;
 		public bool enabled;
+		[IfFlag(0)] public int request_msg_id;
+
+		[Flags] public enum Flags : uint
+		{
+			has_request_msg_id = 0x1,
+		}
 	}
 
 	[TLDef(0xCCFDDF96)]
@@ -12411,6 +12448,41 @@ namespace TL.Methods
 		}
 	}
 
+	[TLDef(0xF743B857)]
+	public sealed partial class Messages_EditChatCreator : IMethod<UpdatesBase>
+	{
+		public InputPeer peer;
+		public InputUserBase user_id;
+		public InputCheckPasswordSRP password;
+	}
+
+	[TLDef(0x3B7D0EA6)]
+	public sealed partial class Messages_GetFutureChatCreatorAfterLeave : IMethod<UserBase>
+	{
+		public InputPeer peer;
+	}
+
+	[TLDef(0xA00F32B0)]
+	public sealed partial class Messages_EditChatParticipantRank : IMethod<UpdatesBase>
+	{
+		public InputPeer peer;
+		public InputPeer participant;
+		public string rank;
+	}
+
+	[TLDef(0x35436BBC)]
+	public sealed partial class Messages_DeclineUrlAuth : IMethod<bool>
+	{
+		public string url;
+	}
+
+	[TLDef(0xC9A47B0B)]
+	public sealed partial class Messages_CheckUrlAuthMatchCode : IMethod<bool>
+	{
+		public string url;
+		public string match_code;
+	}
+
 	[TLDef(0xEDD4882A)]
 	public sealed partial class Updates_GetState : IMethod<Updates_State> { }
 
@@ -12795,13 +12867,19 @@ namespace TL.Methods
 		}
 	}
 
-	[TLDef(0xD33C8902)]
+	[TLDef(0x9A98AD68)]
 	public sealed partial class Channels_EditAdmin : IMethod<UpdatesBase>
 	{
+		public Flags flags;
 		public InputChannelBase channel;
 		public InputUserBase user_id;
 		public ChatAdminRights admin_rights;
-		public string rank;
+		[IfFlag(0)] public string rank;
+
+		[Flags] public enum Flags : uint
+		{
+			has_rank = 0x1,
+		}
 	}
 
 	[TLDef(0x566DECD0)]
@@ -12972,14 +13050,6 @@ namespace TL.Methods
 	{
 		public InputChannelBase broadcast;
 		public InputChannelBase group;
-	}
-
-	[TLDef(0x8F38CD1F)]
-	public sealed partial class Channels_EditCreator : IMethod<UpdatesBase>
-	{
-		public InputChannelBase channel;
-		public InputUserBase user_id;
-		public InputCheckPasswordSRP password;
 	}
 
 	[TLDef(0x58E63F6D)]
@@ -13217,12 +13287,6 @@ namespace TL.Methods
 	{
 		public InputChannelBase channel;
 		public ProfileTab tab;
-	}
-
-	[TLDef(0xA00918AF)]
-	public sealed partial class Channels_GetFutureCreatorAfterLeave : IMethod<UserBase>
-	{
-		public InputChannelBase channel;
 	}
 
 	[TLDef(0xAA2769ED)]
