@@ -6,7 +6,7 @@ namespace TL
 {
 	public static partial class Layer
 	{
-		public const int Version = 227;					// fetched 06/12/2026 00:35:17
+		public const int Version = 228;					// fetched 07/11/2026 00:09:47
 		internal const int SecretChats = 144;
 		internal const int MTProto2 = 73;
 		internal const uint VectorCtor = 0x1CB5C415;
@@ -129,7 +129,7 @@ namespace TL
 			[0x36C6019A] = typeof(PeerChat),
 			[0xA2A5371E] = typeof(PeerChannel),
 			[0xD3BC4B7A] = typeof(UserEmpty),
-			[0x31774388] = typeof(User),
+			[0xB1B8CC83] = typeof(User),
 			[0x4F11BAE1] = null,//UserProfilePhotoEmpty
 			[0x82D1F706] = typeof(UserProfilePhoto),
 			[0x09D05049] = null,//UserStatusEmpty
@@ -141,10 +141,13 @@ namespace TL
 			[0x29562865] = typeof(ChatEmpty),
 			[0x41CBF256] = typeof(Chat),
 			[0x6592A1A7] = typeof(ChatForbidden),
-			[0x1C32B11C] = typeof(Channel),
+			[0xD49F34C6] = typeof(Channel),
 			[0x17D493D5] = typeof(ChannelForbidden),
+			[0xFD3CDAB8] = typeof(CommunityForbidden),
+			[0x65EFE954] = typeof(Community),
 			[0x2633421B] = typeof(ChatFull),
 			[0xA04E8D3A] = typeof(ChannelFull),
+			[0xCBB7A507] = typeof(CommunityFull),
 			[0x38E79FDE] = typeof(ChatParticipant),
 			[0xE1F867B8] = typeof(ChatParticipantCreator),
 			[0x0360D5D2] = typeof(ChatParticipantAdmin),
@@ -241,8 +244,10 @@ namespace TL
 			[0x9DA1CD6C] = typeof(MessageActionPollAppendAnswer),
 			[0x399674DC] = typeof(MessageActionPollDeleteAnswer),
 			[0x16605E3E] = typeof(MessageActionManagedBotCreated),
+			[0x5D20BAE8] = typeof(MessageActionChangeCommunity),
 			[0xFC89F7F3] = typeof(Dialog),
 			[0x71BD134C] = typeof(DialogFolder),
+			[0xF78A0973] = typeof(DialogCommunity),
 			[0x2331B22D] = typeof(PhotoEmpty),
 			[0xFB197A65] = typeof(Photo),
 			[0x0E17E23C] = typeof(PhotoSizeEmpty),
@@ -264,6 +269,7 @@ namespace TL
 			[0x4A95E84E] = typeof(InputNotifyChats),
 			[0xB1DB7C7E] = typeof(InputNotifyBroadcasts),
 			[0x5C467992] = typeof(InputNotifyForumTopic),
+			[0x27BB1ADC] = typeof(InputNotifyCommunity),
 			[0xCACB6AE2] = typeof(InputPeerNotifySettings),
 			[0x99622C0C] = typeof(PeerNotifySettings),
 			[0xF47741F7] = typeof(PeerSettings),
@@ -467,6 +473,10 @@ namespace TL
 			[0xB22083A6] = typeof(UpdateNewBotConnection),
 			[0xC39A2ADE] = typeof(UpdateWebBrowserSettings),
 			[0x140502D1] = typeof(UpdateWebBrowserException),
+			[0x20BCBBA1] = typeof(UpdateNewEphemeralMessage),
+			[0x56DBFCF8] = typeof(UpdateDeleteEphemeralMessages),
+			[0x4BBB8F01] = typeof(UpdateEditEphemeralMessage),
+			[0x6C0D8E23] = typeof(UpdateBotStarsSubscription),
 			[0xA56C2A3E] = typeof(Updates_State),
 			[0x5D75A138] = typeof(Updates_DifferenceEmpty),
 			[0x00F49CA0] = typeof(Updates_Difference),
@@ -518,6 +528,7 @@ namespace TL
 			[0xC007CEC3] = typeof(NotifyChats),
 			[0xD612E8EF] = typeof(NotifyBroadcasts),
 			[0x226E6308] = typeof(NotifyForumTopic),
+			[0xBE376999] = typeof(NotifyCommunity),
 			[0x16BF744E] = typeof(SendMessageTypingAction),
 			[0xFD5EC8F5] = typeof(SendMessageCancelAction),
 			[0xA187D66F] = typeof(SendMessageRecordVideoAction),
@@ -611,7 +622,7 @@ namespace TL
 			[0x2DD14EDC] = typeof(StickerSet),
 			[0x6E153F16] = typeof(Messages_StickerSet),
 			[0xD3F924EB] = null,//Messages_StickerSetNotModified
-			[0xC27AC8C7] = typeof(BotCommand),
+			[0x9852D6D2] = typeof(BotCommand),
 			[0x4D8A0299] = typeof(BotInfo),
 			[0x7D170CFF] = typeof(KeyboardButton),
 			[0xD80C25EC] = typeof(KeyboardButtonUrl),
@@ -789,6 +800,7 @@ namespace TL
 			[0xB956812D] = typeof(TextBankCard),
 			[0x01A9FBFC] = typeof(TextMentionName),
 			[0xA5B45E2B] = typeof(TextDate),
+			[0x9686CB50] = typeof(TextDiff),
 			[0x13567E8A] = typeof(PageBlockUnsupported),
 			[0x70ABC3FD] = typeof(PageBlockTitle),
 			[0x8FFA9A1F] = typeof(PageBlockSubtitle),
@@ -956,8 +968,10 @@ namespace TL
 			[0xACFA1A7E] = typeof(InputMessageCallbackQuery),
 			[0xFCAAFEB7] = typeof(InputDialogPeer),
 			[0x64600527] = typeof(InputDialogPeerFolder),
+			[0x69EF72C4] = typeof(InputDialogPeerCommunity),
 			[0xE56DBF05] = typeof(DialogPeer),
 			[0x514519E2] = typeof(DialogPeerFolder),
+			[0x2F65C8E4] = typeof(DialogPeerCommunity),
 			[0x0D54B65D] = null,//Messages_FoundStickerSetsNotModified
 			[0x8AF09DD2] = typeof(Messages_FoundStickerSets),
 			[0xF39B035C] = typeof(FileHash),
@@ -1302,6 +1316,7 @@ namespace TL
 			[0x3BD4B7C2] = typeof(InputReplyToMessage),
 			[0x5881323A] = typeof(InputReplyToStory),
 			[0x69D66C45] = typeof(InputReplyToMonoForum),
+			[0x4119B95E] = typeof(InputReplyToEphemeralMessage),
 			[0x3FC9053B] = typeof(ExportedStoryLink),
 			[0x712E27FD] = typeof(StoriesStealthMode),
 			[0xCFC9E002] = typeof(MediaAreaCoordinates),
@@ -1564,6 +1579,7 @@ namespace TL
 			[0x1FE9A9BF] = typeof(InputAiComposeToneDefault),
 			[0x0773C080] = typeof(InputAiComposeToneID),
 			[0x1FA01357] = typeof(InputAiComposeToneSlug),
+			[0x0E0C35AF] = typeof(InputAiComposeToneSingleUse),
 			[0xCFF63EA9] = typeof(AiComposeTone),
 			[0x9BAD6414] = typeof(AiComposeToneDefault),
 			[0xC1F46103] = null,//Aicompose_TonesNotModified
@@ -1571,7 +1587,7 @@ namespace TL
 			[0xF1D628EC] = typeof(AiComposeToneExample),
 			[0xDD1FBF93] = typeof(Bots_AccessSettings),
 			[0x445663A7] = typeof(Messages_ChatInviteJoinResultOk),
-			[0x2F51C337] = typeof(Messages_ChatInviteJoinResultWebView),
+			[0x61CA29D3] = typeof(Messages_ChatInviteJoinResultWebView),
 			[0xAE152A69] = typeof(JoinChatBotResultApproved),
 			[0x0EFA0194] = typeof(JoinChatBotResultDeclined),
 			[0x98A3A840] = typeof(JoinChatBotResultQueued),
@@ -1585,6 +1601,13 @@ namespace TL
 			[0xDACB836A] = typeof(InputRichMessageHTML),
 			[0x004B572C] = typeof(InputRichMessageMarkdown),
 			[0xBAF39D8B] = typeof(RichMessage),
+			[0x76141EBD] = typeof(CommunityPeer),
+			[0x7BEAFA85] = typeof(CommunityPeerRequest),
+			[0x2244AFAD] = typeof(Communities_PeerLinkRequests),
+			[0xD9C6DC1A] = typeof(EphemeralMessage),
+			[0x8D78512A] = typeof(Communities_ParticipantJoinedChats),
+			[0x4203998F] = typeof(Messages_TranslatedRichMessage),
+			[0x4C4537C8] = typeof(Messages_ComposedRichMessageWithAI),
 			// from TL.Secret:
 			[0x6ABD9782] = typeof(Layer143.DecryptedMessageMediaDocument),
 			[0x020DF5D0] = typeof(Layer101.MessageEntityBlockquote),
