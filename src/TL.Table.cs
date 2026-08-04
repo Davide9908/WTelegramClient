@@ -6,7 +6,7 @@ namespace TL
 {
 	public static partial class Layer
 	{
-		public const int Version = 228;					// fetched 07/11/2026 00:09:47
+		public const int Version = 228;					// fetched 08/04/2026 23:17:51
 		internal const int SecretChats = 144;
 		internal const int MTProto2 = 73;
 		internal const uint VectorCtor = 0x1CB5C415;
@@ -476,6 +476,7 @@ namespace TL
 			[0x20BCBBA1] = typeof(UpdateNewEphemeralMessage),
 			[0x56DBFCF8] = typeof(UpdateDeleteEphemeralMessages),
 			[0x4BBB8F01] = typeof(UpdateEditEphemeralMessage),
+			[0x9B380762] = typeof(UpdateEphemeralBotCallbackQuery),
 			[0x6C0D8E23] = typeof(UpdateBotStarsSubscription),
 			[0xA56C2A3E] = typeof(Updates_State),
 			[0x5D75A138] = typeof(Updates_DifferenceEmpty),

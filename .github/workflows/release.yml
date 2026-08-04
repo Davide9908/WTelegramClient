@@ -56,7 +56,7 @@ jobs:
         RELEASE_NOTES=${RELEASE_NOTES//;/%3B}
         dotnet pack $PROJECT_PATH --configuration $CONFIGURATION -p:Version=$VERSION -p:ReleaseNotes="$RELEASE_NOTES" --output $PACKAGES_PATH
     # - name: Upload artifact
-    #   uses: actions/upload-artifact@v5
+    #   uses: actions/upload-artifact@v6
     #   with:
     #     name: packages
     #     path: $PACKAGES_PATH/*.nupkg

@@ -6817,6 +6817,17 @@ namespace TL
 	{
 		public EphemeralMessage message;
 	}
+	/// <summary><para>See <a href="https://corefork.telegram.org/constructor/updateEphemeralBotCallbackQuery"/></para></summary>
+	[TLDef(0x9B380762)]
+	public sealed partial class UpdateEphemeralBotCallbackQuery : Update
+	{
+		public long query_id;
+		public long user_id;
+		public Peer peer;
+		public int msg_id;
+		public byte[] data;
+		public EphemeralMessage message;
+	}
 	/// <summary><para>See <a href="https://corefork.telegram.org/constructor/updateBotStarsSubscription"/></para></summary>
 	[TLDef(0x6C0D8E23)]
 	public sealed partial class UpdateBotStarsSubscription : Update

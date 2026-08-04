@@ -8946,6 +8946,20 @@ namespace TL
 				id = id,
 				data = data,
 			});
+
+		/// <summary><para>See <a href="https://corefork.telegram.org/method/ephemeral.editMessage"/></para></summary>
+		public static Task<UpdatesBase> Ephemeral_EditMessage(this Client client, InputPeer peer, InputUserBase receiver_id, int id, string message = null, MessageEntity[] entities = null, ReplyMarkup reply_markup = null, InputMedia media = null)
+			=> client.Invoke(new Ephemeral_EditMessage
+			{
+				flags = (Ephemeral_EditMessage.Flags)((message != null ? 0x1 : 0) | (entities != null ? 0x2 : 0) | (reply_markup != null ? 0x4 : 0) | (media != null ? 0x8 : 0)),
+				peer = peer,
+				receiver_id = receiver_id,
+				id = id,
+				message = message,
+				media = media,
+				entities = entities,
+				reply_markup = reply_markup,
+			});
 	}
 }
 
@@ -16500,6 +16514,27 @@ namespace TL.Methods
 		[Flags] public enum Flags : uint
 		{
 			has_data = 0x2,
+		}
+	}
+
+	[TLDef(0x13F250EE)]
+	public sealed partial class Ephemeral_EditMessage : IMethod<UpdatesBase>
+	{
+		public Flags flags;
+		public InputPeer peer;
+		public InputUserBase receiver_id;
+		public int id;
+		[IfFlag(0)] public string message;
+		[IfFlag(3)] public InputMedia media;
+		[IfFlag(1)] public MessageEntity[] entities;
+		[IfFlag(2)] public ReplyMarkup reply_markup;
+
+		[Flags] public enum Flags : uint
+		{
+			has_message = 0x1,
+			has_entities = 0x2,
+			has_reply_markup = 0x4,
+			has_media = 0x8,
 		}
 	}
 }
