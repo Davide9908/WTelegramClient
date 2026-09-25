@@ -1610,7 +1610,7 @@ namespace WTelegram
         {
             if (_dcSession.withoutUpdates && query is not IMethod<Pong> and not IMethod<FutureSalts>)
                 query = new TL.Methods.InvokeWithoutUpdates<T> { query = query };
-            bool got503 = false;
+            //bool got503 = false;
             int max503Count = 2;
             if (query is TL.Methods.Upload_GetFile)
             {
