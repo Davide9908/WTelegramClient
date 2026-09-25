@@ -293,10 +293,28 @@ namespace TL
 		public override InputPeer ToInputPeer() => new InputPeerChannel(id, access_hash);
 		public override string ToString() => $"ChannelForbidden {id} \"{title}\"";
 	}
+	partial class CommunityForbidden
+	{
+		public override bool IsActive => false;
+		public override ChatPhoto Photo => null;
+		public override bool IsBanned(ChatBannedRights.Flags flags = 0) => true;
+		public override InputPeer ToInputPeer() => new InputPeerChannel(id, access_hash);
+		public override string ToString() => $"CommunityForbidden {id} \"{title}\"";
+	}
+	partial class Community
+	{
+		public override bool IsActive => (flags & Flags.left) == 0;
+		public override ChatPhoto Photo => photo;
+		public override bool IsBanned(ChatBannedRights.Flags flags = 0) => ((default_banned_rights?.flags ?? 0) & flags) != 0;
+		public override InputPeer ToInputPeer() => new InputPeerChannel(id, access_hash);
+		public static implicit operator InputChannel(Community community) => new(community.id, community.access_hash);
+		public override string ToString() => $"Community \"{title}\"";
+	}
 
 	partial class ChatFullBase				{ public abstract int ParticipantsCount { get; } }
 	partial class ChatFull					{ public override int ParticipantsCount => participants.Participants.Length; }
 	partial class ChannelFull				{ public override int ParticipantsCount => participants_count; }
+	partial class CommunityFull				{ public override int ParticipantsCount => 0; }
 
 	partial class ChatParticipantBase		{ public abstract bool IsAdmin { get; } }
 	partial class ChatParticipant			{ public override bool IsAdmin => false; }
